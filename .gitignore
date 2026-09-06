@@ -1,0 +1,30 @@
+# Credenciales y configuracion local
+.env
+.env.*
+!.env.example
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Archivos generados por Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Herramientas de prueba y analisis
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editores y sistema operativo
+.idea/
+.DS_Store
+Thumbs.db
+
