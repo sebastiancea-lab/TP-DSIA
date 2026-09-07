@@ -227,3 +227,6 @@ La hipótesis más riesgosa es que el LLM pueda interpretar correctamente las co
 
 ### 
 
+#  **C.1 — schemas.py: el contrato en código**
+
+Ver la configuración en [schema.py](parte_c\schema.py)
