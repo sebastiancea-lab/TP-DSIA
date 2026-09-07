@@ -229,4 +229,9 @@ La hipótesis más riesgosa es que el LLM pueda interpretar correctamente las co
 
 #  **C.1 — schemas.py: el contrato en código**
 
-Ver la configuración en [schema.py](parte_c\schema.py)
+Ver la configuración en [schemas.py](parte_c\schemas.py)
+
+
+# **C.2 — Script con API real y Structured Outputs**
+
+Ver el script en [app.py](parte_c\app.py)

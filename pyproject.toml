@@ -1,0 +1,15 @@
+[project]
+name = "tp-sda"
+version = "0.1.0"
+description = "TP Integrador Entrega 1 - Pipeline de postventa de Portalia"
+requires-python = ">=3.12"
+dependencies = [
+    "google-genai>=1.0",
+    "pydantic>=2.11",
+    "python-dotenv>=1.0",
+    "tiktoken>=0.9",
+]
+
+[tool.uv]
+# Repo de scripts: uv gestiona las dependencias, no construye ni instala el proyecto.
+package = false
