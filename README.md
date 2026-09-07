@@ -19,7 +19,7 @@ sean la autoridad** sobre el estado real del pedido, el stock y las políticas d
 - Federico Chiesa
 - Lucas Rodríguez Goñi
 - Sebastián Cea
-- Lucas Marcowicz
+- Lucas Markowicz
 
 ## Cómo correr el script
 
