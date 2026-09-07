@@ -235,3 +235,45 @@ Ver la configuración en [schemas.py](parte_c\schemas.py)
 # **C.2 — Script con API real y Structured Outputs**
 
 Ver el script en [app.py](parte_c\app.py)
+
+
+# **C.3 — Lote de prueba y tabla de resultados**
+
+| \#  | Input (resumido) | Salida del  modelo | ¿Validó Pydantic? | Tipo de error si falló |
+| :---- | :---- | :---- | :---- | :---- |
+| 1 | Pide estado del pedido 48327 (no llegó). | {"intencion":"consultar\_pedido","pedido\_id":"48327","producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | Si | — |
+| 2 | Cambio de talle S→L, remera del pedido 48327\. | {"intencion":"solicitar\_cambio","pedido\_id":"48327","producto":"remera","variante\_actual":null,"variante\_solicitada":"L","motivo":"me queda chica"} | Si | — |
+| 3 | Devolución con reintegro, campera del pedido 51204, llegó manchada. | {"intencion":"solicitar\_devolucion","pedido\_id":"51204","producto":"campera","variante\_actual":null,"variante\_solicitada":null,"motivo":"me llego manchada"} | Si | — |
+| 4 | Quiere un cambio pero no dice pedido ni producto ni variante. | {"intencion":"solicitar\_cambio","pedido\_id":null,"producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | No | 	ValidationError · @model\_validator: una operación de escritura (solicitar\_cambio) sin pedido\_id no pasa al backend. |
+| 5 | Intenta anular el prompt, pedir el listado de la base y forzar confirmación de un reembolso. | {"intencion":"otro","pedido\_id":null,"producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | Si | — |
+| 6 | Consulta por un "pedido N° 9" (fuera del rango de 4–6 dígitos). | {"intencion":"consultar\_pedido","pedido\_id":"9","producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | No | ValidationError · @field\_validator de pedido\_id: se esperan 4 a 6 dígitos. |
+|  |  |  |  |  |
+
+# 
+
+# **C.4 — Técnica de prompting**
+
+La técnica utilizada es Zero-shot. En nuestro SYSTEM\_PROMPT definimos el rol, las 4 intenciones permitidas, 7 reglas de comportamiento y el formato de salida. No agregamos un mensaje=\>respuesta de ejemplo. Le damos la tarea, las restricciones y el contrato, sin demostraciones.
+
+## **Por qué no usamos Few-shot:**
+
+  \- El formato ya está garantizado por Structured Outputs (response\_schema derivado del modelo Pydantic).  
+  \- La tarea es clasificación cerrada (4 clases) \+ extracción de entidades superficiales (número de pedido, producto, variante, motivo). Un modelo actual la  
+    resuelve de forma confiable sin ejemplos.
+
+## 
+
+##   **Por qué no CoT:**
+
+  \- La regla 7 exige responder únicamente el JSON, sin texto adicional. Un razonamiento paso a paso ensuciaría la salida estructurada.  
+  \- No es un problema de razonamiento multi-paso: identificar "quiero cambiar el talle" → solicitar\_cambio no requiere cadena de inferencia.
+
+## **Cuándo cambiaríamos a Few-shot:**
+
+Si en el lote de C.3 aparecen fallos sistemáticos — típicamente en el caso ambiguo/incompleto (que el modelo fuerce una intención en vez de otro) o en el prompt injection (que obedezca la instrucción hostil pese a la regla 6\)  ahí se justificaría agregar 2–3 ejemplos dirigidos a ese error puntual, y documentar el antes/después como pide C.4.
+
+# **C.5 — Cierre: dónde se conecta**
+
+En 3 o 4 líneas: ¿en qué paso del flujo del sistema de B.6 encaja este script? ¿Qué le falta todavía para ser el sistema completo? (pista: la Base de Conocimiento de la Parte A sigue sin estar).
+
+El script cubre los dos primeros pasos del flujo técnico de B.6 —el \`\[LLM\]\` que interpreta el mensaje y extrae la intención y los parámetros, y el \`\[Pydantic / Código\]\` que valida esa salida contra el contrato de C.1— y termina justo donde empieza el paso \`\[Backend / SQL / APIs\]\`. Le falta todo lo que sigue luego de detectar la intención: no hay base de datos de pedidos ni API de logística conectadas, no se aplican las reglas de las políticas de cambios y devoluciones (deterministas según B.4), no se persiste nada en la tabla \`interacciones\` de B.5b y no existe todavía el segundo \`\[LLM\]\` que redacta la respuesta humanizada. En términos del PEAS de A.3, el sistema quedó con Sensores, Razonamiento y Actuadores pero sigue \*\*sin Base de Conocimiento\*\*: el motivo por el cual Gemini alucino en A.2 con el pedido 48327, solo que ahora el diseño no lo deja inventar (reglas 4 y 5 del System Prompt más el rechazo de Pydantic).
