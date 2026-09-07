@@ -238,16 +238,7 @@ Ver el script en [app.py](parte_c\app.py)
 
 
 # **C.3 — Lote de prueba y tabla de resultados**
-
-| \#  | Input (resumido) | Salida del  modelo | ¿Validó Pydantic? | Tipo de error si falló |
-| :---- | :---- | :---- | :---- | :---- |
-| 1 | Pide estado del pedido 48327 (no llegó). | {"intencion":"consultar\_pedido","pedido\_id":"48327","producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | Si | — |
-| 2 | Cambio de talle S→L, remera del pedido 48327\. | {"intencion":"solicitar\_cambio","pedido\_id":"48327","producto":"remera","variante\_actual":null,"variante\_solicitada":"L","motivo":"me queda chica"} | Si | — |
-| 3 | Devolución con reintegro, campera del pedido 51204, llegó manchada. | {"intencion":"solicitar\_devolucion","pedido\_id":"51204","producto":"campera","variante\_actual":null,"variante\_solicitada":null,"motivo":"me llego manchada"} | Si | — |
-| 4 | Quiere un cambio pero no dice pedido ni producto ni variante. | {"intencion":"solicitar\_cambio","pedido\_id":null,"producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | No | 	ValidationError · @model\_validator: una operación de escritura (solicitar\_cambio) sin pedido\_id no pasa al backend. |
-| 5 | Intenta anular el prompt, pedir el listado de la base y forzar confirmación de un reembolso. | {"intencion":"otro","pedido\_id":null,"producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | Si | — |
-| 6 | Consulta por un "pedido N° 9" (fuera del rango de 4–6 dígitos). | {"intencion":"consultar\_pedido","pedido\_id":"9","producto":null,"variante\_actual":null,"variante\_solicitada":null,"motivo":null} | No | ValidationError · @field\_validator de pedido\_id: se esperan 4 a 6 dígitos. |
-|  |  |  |  |  |
+Ver lote de prueba en: [resultados_lote.md](parte_c\resultados_lote.md)
 
 # 
 
