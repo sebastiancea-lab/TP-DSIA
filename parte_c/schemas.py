@@ -9,11 +9,13 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # ---------------------------------------------------------------------------
 # B.3 / B.5c -- Intenciones permitidas
 # ---------------------------------------------------------------------------
-# Los cuatro valores exactos de la Matriz de Mapeo de Intenciones (informe.md,
+# Los seis valores exactos de la Matriz de Mapeo de Intenciones (informe.md,
 # B.3) y del "Formato de salida" del System Prompt (B.5c). Cualquier otra cosa
 # que devuelva el modelo es un ValidationError.
 Intencion = Literal[
     "consultar_pedido",
+    "consultar_stock",
+    "consultar_politica_postventa",
     "solicitar_cambio",
     "solicitar_devolucion",
     "otro",
@@ -42,7 +44,7 @@ class ExtraccionPostventa(BaseModel):
     model_config = {"extra": "forbid"}
 
     intencion: Intencion = Field(
-        description="Intencion detectada. Uno de los cuatro valores permitidos."
+        description="Intencion detectada. Uno de los seis valores permitidos."
     )
     pedido_id: Optional[int] = Field(
         default=None,
@@ -157,6 +159,8 @@ extraer unicamente los parametros proporcionados en el mensaje.
 
 Las intenciones permitidas son unicamente:
 - consultar_pedido
+- consultar_stock
+- consultar_politica_postventa
 - solicitar_cambio
 - solicitar_devolucion
 - otro
@@ -179,7 +183,7 @@ Reglas:
 
 Formato de salida:
 {
-  "intencion": "consultar_pedido | solicitar_cambio | solicitar_devolucion | otro",
+  "intencion": "consultar_pedido | consultar_stock | consultar_politica_postventa | solicitar_cambio | solicitar_devolucion | otro",
   "pedido_id": null,
   "producto": null,
   "variante_actual": null,
@@ -260,3 +264,19 @@ if __name__ == "__main__":
     import json
 
     print(json.dumps(esquema_respuesta_gemini(), indent=2, ensure_ascii=False))
+
+    print("\n== e) consulta de stock valida ==")
+    stock = ExtraccionPostventa.model_validate(
+        {
+            "intencion": "consultar_stock",
+            "producto": "remera",
+            "variante_solicitada": "L",
+        }
+    )
+    print(stock.model_dump_json(indent=2))
+
+    print("\n== f) consulta generica de politica valida ==")
+    politica = ExtraccionPostventa.model_validate(
+        {"intencion": "consultar_politica_postventa"}
+    )
+    print(politica.model_dump_json(indent=2))

@@ -15,3 +15,13 @@ Gemini (gemini-3.1-flash-lite).
 | 6 | Consulta por un "pedido N° 9" (fuera del rango de 4–6 dígitos). | {"intencion":"consultar_pedido","pedido_id":"9","producto":null,"variante_actual":null,"variante_solicitada":null,"motivo":null} | No | ValidationError · @field_validator de pedido_id: se esperan 4 a 6 dígitos. |
 
 Para reproducir un caso: uv run python parte_c/app.py --canal <whatsapp|web> "<texto>".
+
+## Casos adicionales para las nuevas intenciones de lectura
+
+Los dos casos adicionales se ejecutaron contra la API de Gemini con el modelo
+`gemini-3.6-flash`. Ambos cumplieron el contrato y validaron con Pydantic.
+
+| # | Input (resumido) | Salida del modelo | ¿Validó Pydantic? | Tipo de error si falló |
+| :---- | :---- | :---- | :---- | :---- |
+| 7 | Consulta stock de una remera en talle L. | {"intencion":"consultar_stock","pedido_id":null,"producto":"remera","variante_actual":null,"variante_solicitada":"L","motivo":null} | Sí | — |
+| 8 | Consulta cuántos días tiene para cambiar un producto. | {"intencion":"consultar_politica_postventa","pedido_id":null,"producto":null,"variante_actual":null,"variante_solicitada":null,"motivo":null} | Sí | — |
