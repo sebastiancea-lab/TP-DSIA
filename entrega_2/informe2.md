@@ -105,19 +105,20 @@ Los resultados obtenidos son:
 
 El Documento A presenta la mayor similitud con la consulta, lo cual resulta coherente ya que ambos están fuertemente relacionados con cambios y devoluciones. El Documento C también presenta una similitud alta por tratar problemas generales de postventa, mientras que el Documento B está principalmente relacionado con pedidos y envíos.
 
-### Validación con NumPy
 
-```python
-import numpy as np
+## A.3 — Construcción de `base_conocimiento.json`
+### Diseño del esquema — Regla del Arquitecto
+La Base de Conocimiento se organizó en un único archivo `base_conocimiento.json` que contiene 18 registros de conocimiento independientes. Cada registro es considerado un documento y lo procesaremos individualmente durante la generación de embeddings.
 
-def similitud_coseno(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+Para cada documento se definieron los siguientes campos:
+- `id`: identificador único que permite reconocer cada documento.
+- `titulo`: nombre que resume el tema principal del documento.
+- `descripcion_semantica`: párrafo que contiene la información semánticamente relevante que despues será transformada en un embedding. Se utilizan descripciones completas y contextualizadas en lugar de palabras aisladas para mejorar la recuperación por similitud semántica.
+- `metadata.categoria`: campo categórico que permite clasificar los documentos según su función dentro de Portalia, por ejemplo cambios, devoluciones, garantías o envíos.
+- `metadata.activo`: campo booleano que permite distinguir documentos vigentes de documentos que ya no deberían utilizarse.
+- `metadata.tags_regionales`: permite identificar las regiones en las que resulta aplicable cada documento.
 
-q = np.array([8, 3])
-doc_a = np.array([9, 2])
-doc_b = np.array([2, 9])
-doc_c = np.array([7, 5])
+Siguiendo la Regla del Arquitecto, se separó la información que debe participar en la búsqueda semántica de aquella que resulta más adecuada para realizar filtros estructurados. La `descripcion_semantica` contiene el significado que queremos comparar mediante embeddings, mientras que campos como `categoria`, `activo` y `tags_regionales` se almacenan como metadata para poder aplicar filtros durante la recuperación.
 
-print("Q vs A:", similitud_coseno(q, doc_a))
-print("Q vs B:", similitud_coseno(q, doc_b))
-print("Q vs C:", similitud_coseno(q, doc_c))
+
+

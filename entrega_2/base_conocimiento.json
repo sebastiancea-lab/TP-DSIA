@@ -1,0 +1,182 @@
+[
+  {
+    "id": "POL-CAM-001",
+    "titulo": "Plazo general para cambios",
+    "contenido": "Los productos adquiridos en Portalia pueden solicitar un cambio dentro de los 30 días corridos posteriores a la recepción del pedido. Para iniciar la solicitud, el cliente debe identificar el pedido y el producto que desea cambiar.",
+    "metadata": {
+      "categoria": "cambios",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-CAM-002",
+    "titulo": "Condiciones del producto para realizar un cambio",
+    "contenido": "Para aceptar un cambio, el producto debe encontrarse sin uso, en buenas condiciones y conservar sus etiquetas y accesorios originales. Portalia puede rechazar la solicitud cuando el producto presente señales de uso o daños atribuibles al cliente.",
+    "metadata": {
+      "categoria": "cambios",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-CAM-003",
+    "titulo": "Cambio por otro talle",
+    "contenido": "Si una prenda no tiene el talle adecuado, el cliente puede solicitar el cambio por otra variante del mismo producto. La confirmación del nuevo talle depende de la disponibilidad de stock al momento de procesar la solicitud.",
+    "metadata": {
+      "categoria": "cambios",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-CAM-004",
+    "titulo": "Cambio por otro producto",
+    "contenido": "El cliente puede solicitar el cambio de un producto por otro disponible en Portalia. Si existe una diferencia de precio, el sistema deberá informar cómo se gestiona esa diferencia antes de confirmar la operación.",
+    "metadata": {
+      "categoria": "cambios",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-DEV-001",
+    "titulo": "Plazo para solicitar una devolución",
+    "contenido": "Las solicitudes de devolución deben iniciarse dentro del plazo establecido por la política de postventa vigente. El cliente debe proporcionar el número de pedido y especificar el producto que desea devolver.",
+    "metadata": {
+      "categoria": "devoluciones",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-DEV-002",
+    "titulo": "Condiciones para aceptar una devolución",
+    "contenido": "Para procesar una devolución, el producto debe cumplir las condiciones establecidas por Portalia para su categoría. Se verifica el estado del producto y la información de la compra antes de autorizar la solicitud.",
+    "metadata": {
+      "categoria": "devoluciones",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-DEV-003",
+    "titulo": "Reintegro de una devolución",
+    "contenido": "Una vez aprobada la devolución y realizadas las verificaciones correspondientes, Portalia inicia el proceso de reintegro utilizando el mecanismo definido para la compra. La aprobación de la solicitud debe realizarse antes de informar al cliente que el reintegro fue efectuado.",
+    "metadata": {
+      "categoria": "devoluciones",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-GAR-001",
+    "titulo": "Garantía por producto defectuoso",
+    "contenido": "Si el cliente recibe un producto con una posible falla o defecto, puede iniciar una solicitud de garantía. Portalia solicitará la información necesaria para identificar la compra y evaluar el inconveniente antes de determinar la resolución correspondiente.",
+    "metadata": {
+      "categoria": "garantias",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "POL-GAR-002",
+    "titulo": "Evidencia para evaluar un producto dañado",
+    "contenido": "Cuando un cliente informa que recibió un producto dañado, Portalia puede solicitar fotografías u otra evidencia del estado del artículo y su embalaje. Esta información se utiliza para evaluar el caso y definir los pasos de postventa.",
+    "metadata": {
+      "categoria": "garantias",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "ENV-001",
+    "titulo": "Seguimiento de pedidos",
+    "contenido": "El cliente puede consultar el seguimiento de un pedido proporcionando su número de pedido. El estado actual y la información de seguimiento deben obtenerse desde el backend de Portalia y la API de la empresa logística, ya que son datos que pueden cambiar en tiempo real.",
+    "metadata": {
+      "categoria": "envios",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "ENV-002",
+    "titulo": "Pedido demorado",
+    "contenido": "Si un pedido supera la fecha estimada de entrega, el sistema debe consultar el estado actualizado del envío antes de responder. No se deben inventar motivos de demora, nuevas fechas de entrega ni ubicaciones del paquete si esa información no fue proporcionada por la fuente logística.",
+    "metadata": {
+      "categoria": "envios",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "ENV-003",
+    "titulo": "Pedido despachado",
+    "contenido": "Cuando un pedido figura como despachado, significa que salió de la etapa de preparación y fue entregado al proceso logístico correspondiente. Los detalles actuales del recorrido y la entrega deben consultarse mediante los sistemas integrados de seguimiento.",
+    "metadata": {
+      "categoria": "envios",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "FAQ-001",
+    "titulo": "Cómo iniciar un cambio",
+    "contenido": "Para iniciar un cambio, el cliente debe indicar el número de pedido, el producto involucrado y, cuando corresponda, la variante actual y la variante solicitada. El sistema verifica posteriormente las políticas aplicables y la disponibilidad necesaria.",
+    "metadata": {
+      "categoria": "faq",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "FAQ-002",
+    "titulo": "Cómo iniciar una devolución",
+    "contenido": "Para iniciar una devolución, el cliente debe identificar el pedido, indicar el producto que desea devolver y proporcionar el motivo de la solicitud. La devolución no debe confirmarse hasta verificar que cumple las condiciones correspondientes.",
+    "metadata": {
+      "categoria": "faq",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "FAQ-003",
+    "titulo": "Consulta de stock",
+    "contenido": "La disponibilidad de un producto o variante puede cambiar constantemente. Cuando un cliente consulta si existe stock de un artículo, talle o variante determinada, la respuesta debe obtenerse desde el sistema de inventario de Portalia y no desde información estática almacenada en la Base de Conocimiento.",
+    "metadata": {
+      "categoria": "faq",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "PROC-001",
+    "titulo": "Derivación a un operador humano",
+    "contenido": "Una consulta debe derivarse a un operador humano cuando el sistema no pueda determinar de forma segura la intención del cliente, falten datos esenciales que no puedan recuperarse o el caso requiera una evaluación manual. La derivación debe conservar el contexto relevante de la interacción.",
+    "metadata": {
+      "categoria": "procedimientos",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "PROC-002",
+    "titulo": "Validación previa de operaciones de alto riesgo",
+    "contenido": "Las solicitudes que modifican el estado del sistema, como cambios y devoluciones, requieren validaciones antes de ejecutarse. Se debe verificar la identidad del pedido, los parámetros necesarios y las reglas de negocio correspondientes antes de registrar la operación.",
+    "metadata": {
+      "categoria": "procedimientos",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  },
+  {
+    "id": "PROC-003",
+    "titulo": "Uso de fuentes de verdad para datos dinámicos",
+    "contenido": "Los datos dinámicos de Portalia, como stock, precios, estado de pedidos y seguimiento logístico, deben obtenerse desde la base de datos, el backend o las APIs correspondientes. El modelo de lenguaje no debe inventar estos valores ni utilizar información estática como reemplazo de la fuente actualizada.",
+    "metadata": {
+      "categoria": "procedimientos",
+      "activo": true,
+      "tags_regionales": ["AR"]
+    }
+  }
+]
