@@ -122,3 +122,25 @@ Siguiendo la Regla del Arquitecto, se separó la información que debe participa
 
 
 
+## Parte B — ChromaDB, Filtrado Híbrido y ETL
+
+### B.1 — Migración a ChromaDB
+La migración de la base de conocimiento estática (`base_conocimiento.json`) hacia ChromaDB fue implementada en el script `vector_db.py`. Para esto se utilizó un `PersistentClient` que guarda la información en disco dentro del directorio `chroma_db/`, configurando la colección con distancia `cosine` e inyectando los datos mediante la operación `upsert` para evitar duplicados en ejecuciones posteriores.
+
+
+## B.2 — Los tres límites de FAISS que ChromaDB resuelve
+
+| Límite de FAISS | Cómo se manifiesta en su dominio | Cómo lo resuelve ChromaDB |
+|---|---|---|
+| **Sin persistencia transaccional / atomicidad** | En FAISS el índice vive en la memoria RAM y solo se guarda si llamamos manualmente a `write_index()`. Si el servidor de Portalia se reinicia antes de guardar, se pierden todos los nuevos documentos ingresados. | ChromaDB utiliza una base de datos embebida (SQLite) y guarda los datos en disco de forma transaccional. Cada operación se persiste automáticamente, resolviendo la volatilidad de la RAM. |
+| **Sin filtrado híbrido nativo** | FAISS solo sabe calcular distancias matemáticas. Si un cliente de Portalia pregunta por "políticas de envío", y queremos filtrar solo documentos vigentes (`activo: true`), FAISS nos obligaría a buscar todo primero y filtrar después (descartando resultados y perdiendo eficiencia). | ChromaDB permite realizar "filtrado híbrido". Acepta condiciones en la consulta (usando el parámetro `where`), filtrando la metadata *antes* de calcular la similitud vectorial. |
+| **CRUD ineficiente / sin concurrencia** | FAISS no permite actualizar o eliminar un documento específico fácilmente por su ID. Si actualizamos una política de devoluciones en Portalia, reconstruir el índice de FAISS es costoso. | ChromaDB ofrece operaciones CRUD completas y nativas (`add`, `update`, `upsert`, `delete`) basadas en el ID único de cada documento, permitiendo actualización en caliente. |
+
+
+## B.3 — Evento de negocio en caliente
+
+Simulamos la actualización de la política de cambios (ID: `POL-CAM-001`), extendiendo el plazo a 45 días utilizando el comando `coleccion.upsert()`. Al verificar con `coleccion.get()`, comprobamos que el texto se actualizó exitosamente sin crear duplicados.
+
+**¿Por qué usamos `upsert` y no `add` ni `update`?**
+Usamos `upsert` ("update or insert") porque vuelve la operación idempotente: si el documento no existe, lo crea (como haría `add`); si ya existe, lo actualiza (como haría `update`). Si usáramos `add`, el sistema lanzaría un error al encontrar un ID duplicado, y si usáramos `update` fallaría si el documento aún no fue ingresado.
+
