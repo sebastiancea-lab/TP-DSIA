@@ -144,3 +144,11 @@ Simulamos la actualización de la política de cambios (ID: `POL-CAM-001`), exte
 **¿Por qué usamos `upsert` y no `add` ni `update`?**
 Usamos `upsert` ("update or insert") porque vuelve la operación idempotente: si el documento no existe, lo crea (como haría `add`); si ya existe, lo actualiza (como haría `update`). Si usáramos `add`, el sistema lanzaría un error al encontrar un ID duplicado, y si usáramos `update` fallaría si el documento aún no fue ingresado.
 
+
+
+## B.4 — Búsqueda Híbrida
+
+La función de búsqueda híbrida fue implementada en el script `vector_db.py` (`buscar_portalia`). Para cumplir con las reglas de eficiencia y evitar el post-filtering manual, los filtros duros (por ejemplo, buscar solo documentos de la categoría "cambios" y que estén activos) se resuelven de forma nativa utilizando el operador `$and`. 
+
+De esta manera, el filtro se inyecta directamente en la cláusula `where` de ChromaDB, descartando los documentos irrelevantes antes de que el motor de la base de datos gaste recursos calculando la similitud semántica.
+
