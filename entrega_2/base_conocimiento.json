@@ -1,182 +1,628 @@
 [
   {
     "id": "POL-CAM-001",
-    "titulo": "Plazo general para cambios",
-    "contenido": "Los productos adquiridos en Portalia pueden solicitar un cambio dentro de los 30 días corridos posteriores a la recepción del pedido. Para iniciar la solicitud, el cliente debe identificar el pedido y el producto que desea cambiar.",
-    "metadata": {
+    "descripcion_semantica": "Plazo general para cambios. Los productos adquiridos en Portalia pueden solicitar un cambio dentro de los 30 días corridos posteriores a la recepción del pedido. Para iniciar la solicitud, el cliente debe identificar el pedido y el producto que desea cambiar.",
+    "metadatos": {
       "categoria": "cambios",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "cambio",
+        "plazo",
+        "30 días"
+      ]
     }
   },
   {
     "id": "POL-CAM-002",
-    "titulo": "Condiciones del producto para realizar un cambio",
-    "contenido": "Para aceptar un cambio, el producto debe encontrarse sin uso, en buenas condiciones y conservar sus etiquetas y accesorios originales. Portalia puede rechazar la solicitud cuando el producto presente señales de uso o daños atribuibles al cliente.",
-    "metadata": {
+    "descripcion_semantica": "Condiciones del producto para realizar un cambio. Para evaluar un cambio, Portalia verifica que el artículo corresponda al pedido y que se presente con los accesorios incluidos originalmente. También revisa si tiene señales de uso o daños atribuibles al cliente antes de aprobar la solicitud. Si el cliente informa que el equipo llegó dañado o presenta una falla, el caso debe evaluarse por la vía de postventa correspondiente, sin rechazarlo automáticamente como un cambio por preferencia.",
+    "metadatos": {
       "categoria": "cambios",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "cambio",
+        "condiciones",
+        "accesorios"
+      ]
     }
   },
   {
     "id": "POL-CAM-003",
-    "titulo": "Cambio por otro talle",
-    "contenido": "Si una prenda no tiene el talle adecuado, el cliente puede solicitar el cambio por otra variante del mismo producto. La confirmación del nuevo talle depende de la disponibilidad de stock al momento de procesar la solicitud.",
-    "metadata": {
+    "descripcion_semantica": "Cambio por otra variante del mismo producto. Si el cliente prefiere otro color o capacidad de un mismo modelo de producto electrónico, puede solicitar el cambio de variante. Antes de confirmar la solicitud, Portalia debe verificar que se cumplan las condiciones de cambio y consultar en el inventario actualizado si la variante elegida está disponible.",
+    "metadatos": {
       "categoria": "cambios",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "cambio",
+        "variante",
+        "color",
+        "capacidad"
+      ]
     }
   },
   {
     "id": "POL-CAM-004",
-    "titulo": "Cambio por otro producto",
-    "contenido": "El cliente puede solicitar el cambio de un producto por otro disponible en Portalia. Si existe una diferencia de precio, el sistema deberá informar cómo se gestiona esa diferencia antes de confirmar la operación.",
-    "metadata": {
+    "descripcion_semantica": "Cambio por otro producto. El cliente puede solicitar un cambio por un artículo diferente del catálogo de Portalia. Antes de confirmar, el sistema debe verificar las condiciones de cambio y la disponibilidad actual del artículo elegido, consultar los precios vigentes e informar si existe una diferencia y cómo se gestionará. No debe registrar la operación mientras esa información o la aceptación del cliente estén pendientes.",
+    "metadatos": {
       "categoria": "cambios",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "cambio",
+        "otro producto",
+        "diferencia de precio"
+      ]
     }
   },
   {
     "id": "POL-DEV-001",
-    "titulo": "Plazo para solicitar una devolución",
-    "contenido": "Las solicitudes de devolución deben iniciarse dentro del plazo establecido por la política de postventa vigente. El cliente debe proporcionar el número de pedido y especificar el producto que desea devolver.",
-    "metadata": {
+    "descripcion_semantica": "Plazo para solicitar una devolución. El cliente puede iniciar una solicitud de devolución dentro de los 10 días corridos posteriores a la recepción del producto. Para identificar la compra y tramitar la solicitud, debe indicar el número de pedido y el producto que desea devolver; la aceptación queda sujeta a la verificación de las condiciones aplicables.",
+    "metadatos": {
       "categoria": "devoluciones",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "devolución",
+        "plazo",
+        "10 días"
+      ]
     }
   },
   {
     "id": "POL-DEV-002",
-    "titulo": "Condiciones para aceptar una devolución",
-    "contenido": "Para procesar una devolución, el producto debe cumplir las condiciones establecidas por Portalia para su categoría. Se verifica el estado del producto y la información de la compra antes de autorizar la solicitud.",
-    "metadata": {
+    "descripcion_semantica": "Condiciones para aceptar una devolución. Portalia verifica que la solicitud se haya iniciado dentro de los 10 días corridos posteriores a la recepción y que el producto corresponda al pedido indicado. También revisa el estado del artículo y sus accesorios para determinar cómo continuar el trámite. Si el cliente informa que llegó dañado o presenta una falla, el caso requiere una evaluación específica; no debe rechazarse automáticamente por el estado del producto.",
+    "metadatos": {
       "categoria": "devoluciones",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "devolución",
+        "condiciones",
+        "producto dañado"
+      ]
     }
   },
   {
     "id": "POL-DEV-003",
-    "titulo": "Reintegro de una devolución",
-    "contenido": "Una vez aprobada la devolución y realizadas las verificaciones correspondientes, Portalia inicia el proceso de reintegro utilizando el mecanismo definido para la compra. La aprobación de la solicitud debe realizarse antes de informar al cliente que el reintegro fue efectuado.",
-    "metadata": {
+    "descripcion_semantica": "Reintegro de una devolución. Una solicitud de devolución aceptada no significa que el dinero ya haya sido reintegrado. Portalia inicia el reintegro después de completar las verificaciones correspondientes y el estado efectivo debe consultarse en el sistema de pagos o postventa. El asistente no debe anunciar un reintegro realizado ni prometer una fecha que la fuente autorizada no confirme.",
+    "metadatos": {
       "categoria": "devoluciones",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "reintegro",
+        "reembolso",
+        "devolución de dinero"
+      ]
     }
   },
   {
     "id": "POL-GAR-001",
-    "titulo": "Garantía por producto defectuoso",
-    "contenido": "Si el cliente recibe un producto con una posible falla o defecto, puede iniciar una solicitud de garantía. Portalia solicitará la información necesaria para identificar la compra y evaluar el inconveniente antes de determinar la resolución correspondiente.",
-    "metadata": {
+    "descripcion_semantica": "Garantía por posible falla de funcionamiento. Si un producto electrónico presenta una falla, el cliente puede informar el número de pedido, el equipo afectado, los síntomas y desde cuándo ocurren. Portalia verifica la compra y las condiciones de garantía antes de indicar el trámite aplicable; el asistente no diagnostica la causa ni promete una reparación, cambio o reintegro antes de la evaluación.",
+    "metadatos": {
       "categoria": "garantias",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "garantía",
+        "falla",
+        "defecto"
+      ]
     }
   },
   {
     "id": "POL-GAR-002",
-    "titulo": "Evidencia para evaluar un producto dañado",
-    "contenido": "Cuando un cliente informa que recibió un producto dañado, Portalia puede solicitar fotografías u otra evidencia del estado del artículo y su embalaje. Esta información se utiliza para evaluar el caso y definir los pasos de postventa.",
-    "metadata": {
+    "descripcion_semantica": "Producto recibido con daños visibles. Si el cliente recibe un artículo o su embalaje golpeado, roto o mojado, Portalia puede solicitar fotografías del producto, sus accesorios y el paquete para documentar el estado al recibirlo. La evidencia se vincula con el pedido y se deriva a evaluación de postventa; no se debe atribuir automáticamente el daño al cliente ni prometer una resolución sin revisión.",
+    "metadatos": {
       "categoria": "garantias",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "producto dañado",
+        "golpeado",
+        "embalaje"
+      ]
     }
   },
   {
     "id": "ENV-001",
-    "titulo": "Seguimiento de pedidos",
-    "contenido": "El cliente puede consultar el seguimiento de un pedido proporcionando su número de pedido. El estado actual y la información de seguimiento deben obtenerse desde el backend de Portalia y la API de la empresa logística, ya que son datos que pueden cambiar en tiempo real.",
-    "metadata": {
+    "descripcion_semantica": "Consulta del seguimiento de un pedido. El cliente puede proporcionar su número de pedido para conocer el estado del envío. Portalia consulta el backend y la información actual de la empresa logística antes de responder; el documento explica el procedimiento, pero no contiene una ubicación ni una fecha de entrega fija.",
+    "metadatos": {
       "categoria": "envios",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "seguimiento",
+        "rastreo",
+        "tracking"
+      ]
     }
   },
   {
     "id": "ENV-002",
-    "titulo": "Pedido demorado",
-    "contenido": "Si un pedido supera la fecha estimada de entrega, el sistema debe consultar el estado actualizado del envío antes de responder. No se deben inventar motivos de demora, nuevas fechas de entrega ni ubicaciones del paquete si esa información no fue proporcionada por la fuente logística.",
-    "metadata": {
+    "descripcion_semantica": "Pedido demorado respecto de la fecha estimada. Cuando un envío supera su fecha prevista, Portalia debe consultar el estado y la última actualización de la empresa logística antes de informar al cliente. Si no hay causa o nueva fecha confirmada, el asistente debe decirlo claramente y no inventar dónde está el paquete ni cuándo llegará.",
+    "metadatos": {
       "categoria": "envios",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "demora",
+        "pedido atrasado",
+        "entrega tardía"
+      ]
     }
   },
   {
     "id": "ENV-003",
-    "titulo": "Pedido despachado",
-    "contenido": "Cuando un pedido figura como despachado, significa que salió de la etapa de preparación y fue entregado al proceso logístico correspondiente. Los detalles actuales del recorrido y la entrega deben consultarse mediante los sistemas integrados de seguimiento.",
-    "metadata": {
+    "descripcion_semantica": "Significado del estado despachado. Un pedido despachado salió de la preparación y fue entregado al circuito logístico, pero eso no implica que esté en reparto ni que vaya a llegar ese mismo día. Para conocer el siguiente movimiento o una fecha actualizada, Portalia consulta el seguimiento vigente del envío.",
+    "metadatos": {
       "categoria": "envios",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "despachado",
+        "enviado",
+        "logística"
+      ]
     }
   },
   {
     "id": "FAQ-001",
-    "titulo": "Cómo iniciar un cambio",
-    "contenido": "Para iniciar un cambio, el cliente debe indicar el número de pedido, el producto involucrado y, cuando corresponda, la variante actual y la variante solicitada. El sistema verifica posteriormente las políticas aplicables y la disponibilidad necesaria.",
-    "metadata": {
+    "descripcion_semantica": "Cómo iniciar un cambio de producto. El cliente indica el número de pedido, el artículo que quiere cambiar y la variante o el nuevo producto que desea recibir. Portalia reúne esos datos y verifica después el plazo, el estado del artículo y la disponibilidad actual; iniciar el trámite no equivale a tener el cambio aprobado.",
+    "metadatos": {
       "categoria": "faq",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "iniciar cambio",
+        "solicitar cambio",
+        "postventa"
+      ]
     }
   },
   {
     "id": "FAQ-002",
-    "titulo": "Cómo iniciar una devolución",
-    "contenido": "Para iniciar una devolución, el cliente debe identificar el pedido, indicar el producto que desea devolver y proporcionar el motivo de la solicitud. La devolución no debe confirmarse hasta verificar que cumple las condiciones correspondientes.",
-    "metadata": {
+    "descripcion_semantica": "Cómo iniciar una devolución. El cliente informa el número de pedido, el artículo que desea devolver y el motivo de la solicitud. Portalia registra los datos necesarios para evaluar el caso y verifica el plazo y las condiciones aplicables; presentar la solicitud no significa que la devolución ni el reintegro ya estén aprobados.",
+    "metadatos": {
       "categoria": "faq",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "iniciar devolución",
+        "solicitar devolución",
+        "postventa"
+      ]
     }
   },
   {
     "id": "FAQ-003",
-    "titulo": "Consulta de stock",
-    "contenido": "La disponibilidad de un producto o variante puede cambiar constantemente. Cuando un cliente consulta si existe stock de un artículo, talle o variante determinada, la respuesta debe obtenerse desde el sistema de inventario de Portalia y no desde información estática almacenada en la Base de Conocimiento.",
-    "metadata": {
+    "descripcion_semantica": "Cómo consultar la disponibilidad de un producto. El cliente puede indicar el modelo y la variante que necesita, por ejemplo capacidad o color. Portalia debe consultar el inventario actualizado antes de responder si está disponible; la descripción del catálogo y el indicador de stock usado en esta demostración no garantizan existencia real para la venta.",
+    "metadatos": {
       "categoria": "faq",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "stock",
+        "disponibilidad",
+        "hay unidades"
+      ]
     }
   },
   {
     "id": "PROC-001",
-    "titulo": "Derivación a un operador humano",
-    "contenido": "Una consulta debe derivarse a un operador humano cuando el sistema no pueda determinar de forma segura la intención del cliente, falten datos esenciales que no puedan recuperarse o el caso requiera una evaluación manual. La derivación debe conservar el contexto relevante de la interacción.",
-    "metadata": {
+    "descripcion_semantica": "Derivación a un operador humano. Portalia deriva una consulta cuando no puede identificar con seguridad el pedido o la intención, falta información indispensable que el cliente no puede aportar, o el caso requiere una decisión manual. La derivación debe incluir el motivo, los datos ya verificados y el contexto útil de la conversación, sin afirmar que la solicitud fue aprobada.",
+    "metadatos": {
       "categoria": "procedimientos",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "operador humano",
+        "atención humana",
+        "derivación"
+      ]
     }
   },
   {
     "id": "PROC-002",
-    "titulo": "Validación previa de operaciones de alto riesgo",
-    "contenido": "Las solicitudes que modifican el estado del sistema, como cambios y devoluciones, requieren validaciones antes de ejecutarse. Se debe verificar la identidad del pedido, los parámetros necesarios y las reglas de negocio correspondientes antes de registrar la operación.",
-    "metadata": {
+    "descripcion_semantica": "Validación previa a operaciones que modifican datos. Antes de registrar un cambio o una devolución, Portalia verifica la identidad del pedido, el artículo involucrado, los datos requeridos y las reglas de negocio aplicables. Si alguna verificación falla o el cliente no confirma los términos informados, el sistema no debe ejecutar la operación y debe indicar el siguiente paso seguro.",
+    "metadatos": {
       "categoria": "procedimientos",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "validación",
+        "confirmación",
+        "operación"
+      ]
     }
   },
   {
     "id": "PROC-003",
-    "titulo": "Uso de fuentes de verdad para datos dinámicos",
-    "contenido": "Los datos dinámicos de Portalia, como stock, precios, estado de pedidos y seguimiento logístico, deben obtenerse desde la base de datos, el backend o las APIs correspondientes. El modelo de lenguaje no debe inventar estos valores ni utilizar información estática como reemplazo de la fuente actualizada.",
-    "metadata": {
+    "descripcion_semantica": "Fuentes de verdad para información cambiante. Los precios, la disponibilidad, el estado de los pedidos, el seguimiento logístico y el avance de reintegros pueden cambiar durante una conversación. Portalia debe obtener cada valor del backend o de la API responsable en el momento de responder; la base de conocimiento solo describe cómo consultar y explicar esos datos, y el asistente nunca debe inventarlos.",
+    "metadatos": {
       "categoria": "procedimientos",
       "activo": true,
-      "tags_regionales": ["AR"]
+      "tags_regionales": [
+        "fuente de verdad",
+        "dato actualizado",
+        "consulta en vivo"
+      ]
+    }
+  },
+  {
+    "id": "PROD-001",
+    "descripcion_semantica": "Celular Portalia Nova 128 con conectividad 4G, almacenamiento de 128 GB y pantalla de 6,5 pulgadas. Está orientado a mensajería, navegación, fotografías y aplicaciones de uso cotidiano para quien busca un teléfono inteligente con amplio espacio interno sin requerir una red móvil 5G.",
+    "metadatos": {
+      "categoria": "celulares",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "celular",
+        "móvil",
+        "smartphone",
+        "4G",
+        "128 GB"
+      ],
+      "red_movil": "4G",
+      "almacenamiento_gb": 128
+    }
+  },
+  {
+    "id": "PROD-002",
+    "descripcion_semantica": "Celular Portalia Nova 5G 128 con conectividad 5G, almacenamiento de 128 GB y pantalla de 6,5 pulgadas. Sirve para comunicación, fotografías y aplicaciones diarias, y está dirigido a quien necesita acceso a redes móviles 5G manteniendo esa capacidad de almacenamiento.",
+    "metadatos": {
+      "categoria": "celulares",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "celular",
+        "móvil",
+        "smartphone",
+        "5G",
+        "128 GB"
+      ],
+      "red_movil": "5G",
+      "almacenamiento_gb": 128
+    }
+  },
+  {
+    "id": "PROD-003",
+    "descripcion_semantica": "Celular Portalia Nova 5G 256 con conectividad 5G, almacenamiento de 256 GB y pantalla de 6,5 pulgadas. Su mayor espacio interno resulta útil para guardar muchas fotografías, videos y aplicaciones sin depender tanto de liberar memoria o trasladar archivos.",
+    "metadatos": {
+      "categoria": "celulares",
+      "activo": true,
+      "en_stock_demo": false,
+      "tags_regionales": [
+        "celular",
+        "móvil",
+        "smartphone",
+        "5G",
+        "256 GB"
+      ],
+      "red_movil": "5G",
+      "almacenamiento_gb": 256
+    }
+  },
+  {
+    "id": "PROD-004",
+    "descripcion_semantica": "Televisor Portalia Vista 43 LED de 43 pulgadas con resolución 4K, aplicaciones de streaming y entradas HDMI para conectar una consola o un reproductor. Su tamaño está pensado para un dormitorio o sala pequeña donde se desea ver series, películas y contenido de alta definición.",
+    "metadatos": {
+      "categoria": "televisores",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "televisor",
+        "TV",
+        "smart TV",
+        "43 pulgadas",
+        "4K",
+        "LED"
+      ],
+      "diagonal_pulgadas": 43,
+      "resolucion": "4K",
+      "tecnologia_panel": "LED",
+      "hdr": false
+    }
+  },
+  {
+    "id": "PROD-005",
+    "descripcion_semantica": "Televisor Portalia Vista 50 LED HDR de 50 pulgadas con resolución 4K, panel LED y compatibilidad con contenido HDR. Ofrece una pantalla amplia para películas, series y videojuegos, con aplicaciones de streaming y conexiones HDMI para equipos externos.",
+    "metadatos": {
+      "categoria": "televisores",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "televisor",
+        "TV",
+        "smart TV",
+        "50 pulgadas",
+        "4K",
+        "LED",
+        "HDR"
+      ],
+      "diagonal_pulgadas": 50,
+      "resolucion": "4K",
+      "tecnologia_panel": "LED",
+      "hdr": true
+    }
+  },
+  {
+    "id": "PROD-006",
+    "descripcion_semantica": "Televisor Portalia Vista 50 QLED HDR de 50 pulgadas con resolución 4K, tecnología de pantalla QLED y compatibilidad con contenido HDR. Está orientado a quienes priorizan la reproducción de color en películas y series y buscan una pantalla amplia para el ambiente principal.",
+    "metadatos": {
+      "categoria": "televisores",
+      "activo": true,
+      "en_stock_demo": false,
+      "tags_regionales": [
+        "televisor",
+        "TV",
+        "smart TV",
+        "50 pulgadas",
+        "4K",
+        "QLED",
+        "HDR"
+      ],
+      "diagonal_pulgadas": 50,
+      "resolucion": "4K",
+      "tecnologia_panel": "QLED",
+      "hdr": true
+    }
+  },
+  {
+    "id": "PROD-007",
+    "descripcion_semantica": "Notebook Portalia Air 14 con pantalla de 14 pulgadas, 8 GB de RAM y unidad SSD de 256 GB. Su formato liviano permite trasladarla a clases o reuniones y utilizarla para documentos, navegación, videollamadas y tareas de oficina habituales.",
+    "metadatos": {
+      "categoria": "notebooks",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "notebook",
+        "portátil",
+        "laptop",
+        "14 pulgadas",
+        "8 GB RAM"
+      ],
+      "diagonal_pulgadas": 14,
+      "ram_gb": 8,
+      "ssd_gb": 256,
+      "grafica_dedicada": false
+    }
+  },
+  {
+    "id": "PROD-008",
+    "descripcion_semantica": "Notebook Portalia Air 14 con pantalla de 14 pulgadas, 16 GB de RAM y unidad SSD de 512 GB. Combina un formato liviano para estudio o trabajo móvil con mayor margen para mantener varias aplicaciones y pestañas abiertas al mismo tiempo.",
+    "metadatos": {
+      "categoria": "notebooks",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "notebook",
+        "portátil",
+        "laptop",
+        "14 pulgadas",
+        "16 GB RAM"
+      ],
+      "diagonal_pulgadas": 14,
+      "ram_gb": 16,
+      "ssd_gb": 512,
+      "grafica_dedicada": false
+    }
+  },
+  {
+    "id": "PROD-009",
+    "descripcion_semantica": "Notebook Portalia Play 15 Gamer con pantalla de 15,6 pulgadas, 16 GB de RAM, SSD de 512 GB y placa gráfica dedicada. Está pensada para videojuegos y tareas visuales que requieren más rendimiento gráfico que una notebook liviana de oficina.",
+    "metadatos": {
+      "categoria": "notebooks",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "notebook gamer",
+        "portátil",
+        "laptop",
+        "15 pulgadas",
+        "16 GB RAM"
+      ],
+      "diagonal_pulgadas": 15.6,
+      "ram_gb": 16,
+      "ssd_gb": 512,
+      "grafica_dedicada": true
+    }
+  },
+  {
+    "id": "PROD-010",
+    "descripcion_semantica": "Notebook Portalia Play 15 Gamer con pantalla de 15,6 pulgadas, 32 GB de RAM, SSD de 1 TB y placa gráfica dedicada. Su memoria y espacio interno están orientados a videojuegos, edición y multitarea exigente con proyectos o archivos de gran tamaño.",
+    "metadatos": {
+      "categoria": "notebooks",
+      "activo": true,
+      "en_stock_demo": false,
+      "tags_regionales": [
+        "notebook gamer",
+        "portátil",
+        "laptop",
+        "15 pulgadas",
+        "32 GB RAM"
+      ],
+      "diagonal_pulgadas": 15.6,
+      "ram_gb": 32,
+      "ssd_gb": 1024,
+      "grafica_dedicada": true
+    }
+  },
+  {
+    "id": "PROD-011",
+    "descripcion_semantica": "Auriculares Portalia Silencio de tipo circumaural con conexión Bluetooth, micrófono y cancelación activa de ruido. Sus almohadillas cubren las orejas y el sistema de reducción de ruido ambiental los hace apropiados para viajes, trabajo compartido y escucha concentrada.",
+    "metadatos": {
+      "categoria": "auriculares",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "auriculares",
+        "cascos",
+        "Bluetooth",
+        "inalámbricos",
+        "ANC",
+        "cancelación de ruido"
+      ],
+      "conexion": "Bluetooth",
+      "cancelacion_activa": true,
+      "uso_deportivo": false
+    }
+  },
+  {
+    "id": "PROD-012",
+    "descripcion_semantica": "Auriculares Portalia Aire de tipo circumaural con conexión Bluetooth, micrófono y almohadillas que proporcionan aislamiento pasivo del sonido exterior. Son adecuados para escuchar música y participar en videollamadas sin cable durante el uso cotidiano.",
+    "metadatos": {
+      "categoria": "auriculares",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "auriculares",
+        "cascos",
+        "Bluetooth",
+        "inalámbricos",
+        "aislamiento pasivo"
+      ],
+      "conexion": "Bluetooth",
+      "cancelacion_activa": false,
+      "uso_deportivo": false
+    }
+  },
+  {
+    "id": "PROD-013",
+    "descripcion_semantica": "Auriculares Portalia Ritmo Sport intraaurales con conexión Bluetooth, ajuste firme y resistencia a salpicaduras de sudor. Están pensados para correr o entrenar sin cable, manteniendo los auriculares colocados mientras la persona se mueve.",
+    "metadatos": {
+      "categoria": "auriculares",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "auriculares",
+        "in-ear",
+        "Bluetooth",
+        "deportivos",
+        "sudor"
+      ],
+      "conexion": "Bluetooth",
+      "cancelacion_activa": false,
+      "uso_deportivo": true
+    }
+  },
+  {
+    "id": "PROD-014",
+    "descripcion_semantica": "Auriculares Portalia Voz con cable, conector de 3,5 mm y micrófono incorporado. Permiten escuchar audio y participar en llamadas o clases virtuales mediante un equipo compatible con esa entrada, sin emparejamiento ni recarga de batería.",
+    "metadatos": {
+      "categoria": "auriculares",
+      "activo": true,
+      "en_stock_demo": false,
+      "tags_regionales": [
+        "auriculares",
+        "con cable",
+        "jack 3,5 mm",
+        "micrófono",
+        "manos libres"
+      ],
+      "conexion": "cable_3_5",
+      "cancelacion_activa": false,
+      "uso_deportivo": false
+    }
+  },
+  {
+    "id": "PROD-015",
+    "descripcion_semantica": "Monitor Portalia Desk 24 de 24 pulgadas, resolución Full HD y frecuencia de actualización de 75 Hz. Está orientado a planillas, documentos, navegación y videollamadas en un puesto de trabajo o estudio de uso general.",
+    "metadatos": {
+      "categoria": "monitores",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "monitor",
+        "pantalla",
+        "24 pulgadas",
+        "Full HD",
+        "oficina"
+      ],
+      "diagonal_pulgadas": 24,
+      "resolucion": "Full HD",
+      "frecuencia_hz": 75,
+      "usb_c_video_carga": false
+    }
+  },
+  {
+    "id": "PROD-016",
+    "descripcion_semantica": "Monitor Portalia Rush 24 de 24 pulgadas, resolución Full HD y frecuencia de actualización de 165 Hz. Su alta tasa de refresco está orientada a videojuegos de movimiento rápido y a personas que priorizan una imagen fluida.",
+    "metadatos": {
+      "categoria": "monitores",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "monitor gamer",
+        "pantalla",
+        "24 pulgadas",
+        "Full HD",
+        "165 Hz"
+      ],
+      "diagonal_pulgadas": 24,
+      "resolucion": "Full HD",
+      "frecuencia_hz": 165,
+      "usb_c_video_carga": false
+    }
+  },
+  {
+    "id": "PROD-017",
+    "descripcion_semantica": "Monitor Portalia Detail 27 de 27 pulgadas con resolución 4K y conexiones de video convencionales. Su superficie y nitidez son útiles para fotografía, diseño, edición y trabajo con varias ventanas visibles en el escritorio.",
+    "metadatos": {
+      "categoria": "monitores",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "monitor",
+        "pantalla",
+        "27 pulgadas",
+        "4K",
+        "diseño"
+      ],
+      "diagonal_pulgadas": 27,
+      "resolucion": "4K",
+      "usb_c_video_carga": false
+    }
+  },
+  {
+    "id": "PROD-018",
+    "descripcion_semantica": "Monitor Portalia Detail 27 USB-C de 27 pulgadas con resolución 4K y conexión USB-C para transportar video y suministrar energía a una notebook compatible mediante un solo cable. Facilita un escritorio despejado; antes de recomendar la función de carga se debe verificar la potencia requerida por el equipo conectado.",
+    "metadatos": {
+      "categoria": "monitores",
+      "activo": true,
+      "en_stock_demo": false,
+      "tags_regionales": [
+        "monitor",
+        "pantalla",
+        "27 pulgadas",
+        "4K",
+        "USB-C",
+        "notebook"
+      ],
+      "diagonal_pulgadas": 27,
+      "resolucion": "4K",
+      "usb_c_video_carga": true
+    }
+  },
+  {
+    "id": "PROD-019",
+    "descripcion_semantica": "Cargador Portalia USB-C de 20 W con tecnología USB Power Delivery para teléfonos compatibles. Está pensado para recargar un celular mediante un cable adecuado al dispositivo, ocupando poco espacio en una mesa de trabajo o mochila.",
+    "metadatos": {
+      "categoria": "cargadores",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "cargador",
+        "USB-C",
+        "20 W",
+        "celular",
+        "móvil"
+      ],
+      "potencia_w": 20,
+      "uso_principal": "celular"
+    }
+  },
+  {
+    "id": "PROD-020",
+    "descripcion_semantica": "Cargador Portalia USB-C de 65 W con tecnología USB Power Delivery para notebooks compatibles con carga por ese puerto. También puede alimentar otros dispositivos compatibles, pero antes de recomendarlo se deben comprobar el estándar y la potencia requeridos por cada equipo.",
+    "metadatos": {
+      "categoria": "cargadores",
+      "activo": true,
+      "en_stock_demo": true,
+      "tags_regionales": [
+        "cargador",
+        "USB-C",
+        "65 W",
+        "notebook",
+        "portátil"
+      ],
+      "potencia_w": 65,
+      "uso_principal": "notebook"
     }
   }
 ]
