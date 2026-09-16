@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "TP Integrador Entrega 1 - Pipeline de postventa de Portalia"
 requires-python = ">=3.12"
 dependencies = [
+    "faiss-cpu>=1.12",
     "google-genai>=1.0",
+    "numpy>=2.0",
     "pydantic>=2.11",
     "python-dotenv>=1.0",
     "tiktoken>=0.9",

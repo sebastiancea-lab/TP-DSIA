@@ -107,19 +107,24 @@ El Documento A presenta la mayor similitud con la consulta, lo cual resulta cohe
 
 
 ## A.3 — Construcción de `base_conocimiento.json`
-### Diseño del esquema — Regla del Arquitecto
-La Base de Conocimiento se organizó en un único archivo `base_conocimiento.json` que contiene 18 registros de conocimiento independientes. Cada registro es considerado un documento y lo procesaremos individualmente durante la generación de embeddings.
+La base de conocimiento útil de Portalia consta de 38 documentos: 18 sobre políticas de cambios, devoluciones y garantías, envíos, preguntas frecuentes y procedimientos; y 20 descripciones de productos de electrónica. Cada documento tiene un `id` único, un párrafo en `descripcion_semantica` y un objeto `metadatos`. Las descripciones de productos incluyen características y contextos de uso; el catálogo contiene variantes similares —como celulares 4G y 5G o televisores LED y QLED— para poner a prueba la recuperación.
 
-Para cada documento se definieron los siguientes campos:
-- `id`: identificador único que permite reconocer cada documento.
-- `titulo`: nombre que resume el tema principal del documento.
-- `descripcion_semantica`: párrafo que contiene la información semánticamente relevante que despues será transformada en un embedding. Se utilizan descripciones completas y contextualizadas en lugar de palabras aisladas para mejorar la recuperación por similitud semántica.
-- `metadata.categoria`: campo categórico que permite clasificar los documentos según su función dentro de Portalia, por ejemplo cambios, devoluciones, garantías o envíos.
-- `metadata.activo`: campo booleano que permite distinguir documentos vigentes de documentos que ya no deberían utilizarse.
-- `metadata.tags_regionales`: permite identificar las regiones en las que resulta aplicable cada documento.
+Todos los documentos comparten tres metadatos: `categoria`, que identifica el tipo de contenido; `activo`, que indica su vigencia; y `tags_regionales`, una lista de sinónimos y expresiones comerciales relacionadas. Actualmente los 38 documentos están activos. Los productos agregan `en_stock_demo` para ensayar filtros de disponibilidad: 15 tienen el valor `true` y 5, `false`. Según la categoría, incorporan además especificaciones filtrables, como `red_movil`, `almacenamiento_gb`, `tecnologia_panel`, `ram_gb`, `cancelacion_activa`, `usb_c_video_carga` o `potencia_w`. Un campo específico se omite cuando no corresponde al documento, en lugar de completarlo con un valor ficticio.
 
-Siguiendo la Regla del Arquitecto, se separó la información que debe participar en la búsqueda semántica de aquella que resulta más adecuada para realizar filtros estructurados. La `descripcion_semantica` contiene el significado que queremos comparar mediante embeddings, mientras que campos como `categoria`, `activo` y `tags_regionales` se almacenan como metadata para poder aplicar filtros durante la recuperación.
+Aplicamos la Regla del Arquitecto separando lo narrativo de los datos que necesitan filtros estrictos. El significado y el contexto de uso quedan en `descripcion_semantica`, mientras que la categoría, la vigencia, la disponibilidad simulada y las especificaciones comprobables quedan en `metadatos`. Los valores de `tags_regionales` son etiquetas de apoyo: no modifican por sí solos el texto que se vectoriza. `en_stock_demo` permite probar búsquedas con y sin disponibilidad; en el funcionamiento previsto para Portalia, ese estado se actualizaría desde el sistema de inventario.
 
+Para la prueba de ETL de B.5, posteriormente se añadieron al archivo de entrada `base_conocimiento.json` tres documentos casi duplicados y dos inconsistencias estructurales intencionales. Por eso ese archivo contiene ahora 41 registros; `base_conocimiento_limpia.json` conserva los 38 documentos útiles después de normalizar y eliminar los tres duplicados. Las pruebas de A.4 y A.5 que se describen a continuación se realizaron antes de esa ampliación, con los 38 documentos originales.
+
+## A.4 — Generación de embeddings e índice FAISS
+El script `pipeline_vectorial.py` toma la `descripcion_semantica` de cada documento de `base_conocimiento.json`, genera embeddings con el modelo configurado en `.env` y los incorpora a un índice FAISS `IndexFlatL2`. El índice se guarda en `indices/portalia.index` junto con un manifiesto que registra el modelo, la dimensión, los identificadores y la huella del archivo de entrada. Si el archivo o la configuración cambian, el índice anterior deja de considerarse vigente y se reconstruye.
+
+La implementación se probó con los 38 documentos previos a B.5 y consultas sobre productos y políticas. El archivo de entrada actual contiene 41 registros por los casos intencionales de B.5; una nueva ejecución de A.4 generaría un índice de 41 vectores y no corresponde a la prueba anterior de 38.
+
+## A.5 — Prueba de volatilidad de la RAM
+La prueba se realizó antes de la ampliación del archivo para B.5, con los 38 documentos originales y cuatro procesos Python independientes: se construyó un índice de 38 vectores sin guardarlo y el proceso siguiente no encontró ningún archivo para recargar. Luego se generaron nuevamente los embeddings, se guardó el índice con `faiss.write_index()` y otro proceso recuperó los 38 vectores con `faiss.read_index()` sin regenerarlos. Los comandos, horarios y salidas se encuentran en `a5_prueba_volatilidad/evidencia_a5.md`.
+
+Si el servidor se reinicia y el índice solo estaba en RAM, debe regenerar los embeddings; con `write_index` puede recargar los vectores guardados sin volver a generarlos.
+Con dos servidores, cada uno necesita acceso a la misma versión del índice y del catálogo, o un mecanismo coordinado de actualización, para evitar respuestas basadas en estados diferentes.
 
 
 ## Parte B — ChromaDB, Filtrado Híbrido y ETL

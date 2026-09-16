@@ -7,11 +7,16 @@
 .venv/
 venv/
 env/
+.uv-cache/
 
 # Archivos generados por Python
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Indice FAISS y manifiesto generados en A.4
+entrega_2/indices/
+entrega_2/a5_prueba_volatilidad/*.index
 
 # Herramientas de prueba y analisis
 .pytest_cache/
@@ -27,4 +32,3 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
-
