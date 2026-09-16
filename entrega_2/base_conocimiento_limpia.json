@@ -25,7 +25,8 @@
       ]
     }
   },
-  {"id": "POL-CAM-003",
+  {
+    "id": "POL-CAM-003",
     "descripcion_semantica": "Cambio por otra variante del mismo producto. Si el cliente prefiere otro color o capacidad de un mismo modelo de producto electrónico, puede solicitar el cambio de variante. Antes de confirmar la solicitud, Portalia debe verificar que se cumplan las condiciones de cambio y consultar en el inventario actualizado si la variante elegida está disponible.",
     "metadatos": {
       "categoria": "cambios",
@@ -185,7 +186,7 @@
     "id": "FAQ-003",
     "descripcion_semantica": "Cómo consultar la disponibilidad de un producto. El cliente puede indicar el modelo y la variante que necesita, por ejemplo capacidad o color. Portalia debe consultar el inventario actualizado antes de responder si está disponible; la descripción del catálogo y el indicador de stock usado en esta demostración no garantizan existencia real para la venta.",
     "metadatos": {
-      "categoría": "faq",
+      "categoria": "faq",
       "activo": true,
       "tags_regionales": [
         "stock",
@@ -212,7 +213,7 @@
     "descripcion_semantica": "Validación previa a operaciones que modifican datos. Antes de registrar un cambio o una devolución, Portalia verifica la identidad del pedido, el artículo involucrado, los datos requeridos y las reglas de negocio aplicables. Si alguna verificación falla o el cliente no confirma los términos informados, el sistema no debe ejecutar la operación y debe indicar el siguiente paso seguro.",
     "metadatos": {
       "categoria": "procedimientos",
-      "activo": "true",
+      "activo": true,
       "tags_regionales": [
         "validación",
         "confirmación",
@@ -622,45 +623,6 @@
       ],
       "potencia_w": 65,
       "uso_principal": "notebook"
-    }
-  },
-  {
-    "id": "POL-GAR-DUP-001",
-    "descripcion_semantica": "Garantía por producto con falla de funcionamiento. Si un producto electrónico presenta una falla, el cliente puede informar el número de pedido, el equipo afectado, los síntomas y desde cuándo ocurren. Portalia verifica la compra y las condiciones de garantía antes de indicar el trámite aplicable; el asistente no diagnostica la causa ni promete una reparación, cambio o reintegro antes de la evaluación.",
-    "metadatos": {
-      "categoria": "garantias",
-      "activo": true,
-      "tags_regionales": [
-        "garantía",
-        "falla",
-        "defecto"
-      ]
-    }
-  },
-  {
-    "id": "ENV-DUP-001",
-    "descripcion_semantica": "Pedido demorado frente a la fecha estimada. Cuando un envío supera su fecha prevista, Portalia debe consultar el estado actualizado y la última actualización de la empresa logística antes de informar al cliente. Si no hay causa o nueva fecha confirmada, el asistente debe decirlo claramente y no inventar dónde está el paquete ni cuándo llegará.",
-    "metadatos": {
-      "categoria": "envios",
-      "activo": true,
-      "tags_regionales": [
-        "demora",
-        "pedido atrasado",
-        "entrega tardía"
-      ]
-    }
-  },
-  {
-    "id": "PROC-DUP-001",
-    "descripcion_semantica": "Fuentes autorizadas para información cambiante. Los precios, la disponibilidad, el estado de los pedidos, el seguimiento logístico y el avance de reintegros pueden cambiar durante una conversación. Portalia debe obtener cada valor del backend o de la API responsable en el momento de responder; la base de conocimiento solo describe cómo consultar esos datos, y el asistente nunca debe inventarlos.",
-    "metadatos": {
-      "categoria": "procedimientos",
-      "activo": true,
-      "tags_regionales": [
-        "fuente de verdad",
-        "dato actualizado",
-        "consulta en vivo"
-      ]
     }
   }
 ]

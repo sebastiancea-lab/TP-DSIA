@@ -152,3 +152,35 @@ La función de búsqueda híbrida fue implementada en el script `vector_db.py` (
 
 De esta manera, el filtro se inyecta directamente en la cláusula `where` de ChromaDB, descartando los documentos irrelevantes antes de que el motor de la base de datos gaste recursos calculando la similitud semántica.
 
+
+## B.5 — ETL de normalización y purga semántica
+
+Para probar el proceso ETL se preparó intencionalmente el dataset incorporando tres casi-duplicados semánticos: `POL-GAR-DUP-001`, similar a `POL-GAR-001`; `ENV-DUP-001`, similar a `ENV-002`; y `PROC-DUP-001`, similar a `PROC-003`. Además, se agregaron dos inconsistencias estructurales: `FAQ-003` contiene inicialmente la clave `"categoría"` en lugar de `"categoria"`, y `PROC-002` contiene inicialmente `"activo": "true"` como string en lugar de booleano.
+
+El script `etl_purga.py` normaliza nombres de claves, normaliza tipos booleanos y resuelve de forma genérica posibles colisiones de IDs mediante sufijos incrementales, garantizando identificadores únicos sin asumir casos particulares. Luego genera embeddings con `DefaultEmbeddingFunction` de ChromaDB y reutiliza la función `similitud_coseno` implementada en A2. La distancia utilizada se calcula como:
+
+`distancia_coseno = 1 - similitud_coseno`
+
+Para la purga semántica se utilizó `UMBRAL_DISTANCIA = 0.15`, calibrado para este dataset y este modelo de embeddings. No debe interpretarse como un valor universal. Las distancias de los casi-duplicados fueron:
+
+- `ENV-002` <-> `ENV-DUP-001`: 0.0103
+- `PROC-003` <-> `PROC-DUP-001`: 0.0232
+- `POL-GAR-001` <-> `POL-GAR-DUP-001`: 0.0304
+
+Los tres pares quedaron por debajo del umbral y se eliminó el documento posterior en cada caso. Durante la calibración también se detectó que algunos productos legítimos del catálogo tienen distancias coseno muy bajas por ser variantes comerciales con descripciones similares, por ejemplo:
+
+- `PROD-007` <-> `PROD-008`: 0.0337
+- `PROD-009` <-> `PROD-010`: 0.0350
+- `PROD-001` <-> `PROD-002`: 0.0716
+
+Estos registros no son duplicados. Por ese motivo, la purga semántica excluye los documentos cuyo ID comienza con `"PROD-"`, ya que una similitud semántica alta entre dos productos no implica que representen el mismo producto. Entre los documentos no pertenecientes al catálogo, no se detectaron otros pares legítimos por debajo del umbral 0.15.
+
+El resultado del ETL fue:
+
+- Documentos de entrada: 41
+- Documentos finales: 38
+- Documentos eliminados: `ENV-DUP-001`, `PROC-DUP-001` y `POL-GAR-DUP-001`
+- Correcciones estructurales: `FAQ-003`, `"categoría"` -> `"categoria"`; `PROC-002`, `"activo"` de string a booleano
+
+Un `SELECT DISTINCT` no habría detectado estos casos, porque solo identifica registros con valores exactamente iguales. En este dataset los documentos tienen IDs y textos diferentes, aunque expresan prácticamente el mismo concepto. La detección mediante embeddings y distancia coseno permite identificar similitud semántica que no es visible mediante igualdad textual exacta.
+
