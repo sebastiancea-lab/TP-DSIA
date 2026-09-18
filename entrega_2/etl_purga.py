@@ -1,19 +1,25 @@
 import json
 import unicodedata
+from pathlib import Path
 
-from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 from a2_validacion import similitud_coseno
+from embeddings_gemini import crear_cliente, obtener_embeddings
 
 
 # ============================================================
 # CONFIGURACIÓN
 # ============================================================
 
-RUTA_BASE = "base_conocimiento.json"
-RUTA_SALIDA = "base_conocimiento_limpia.json"
+DIRECTORIO_ENTREGA = Path(__file__).resolve().parent
+RUTA_BASE = DIRECTORIO_ENTREGA / "base_conocimiento.json"
+RUTA_SALIDA = DIRECTORIO_ENTREGA / "base_conocimiento_limpia.json"
 
-# Umbral calibrado para documentos de conocimiento.
-UMBRAL_DISTANCIA = 0.15
+# Umbral calibrado para gemini-embedding-001 a 768 dimensiones (ver informe_entrega2.md,
+# seccion B.5): los 3 pares de control (casi-duplicados reales) quedan en 0.0062-0.0278,
+# mientras que el par de documentos distintos mas cercano fuera del catalogo de productos
+# (POL-CAM-003 <-> POL-CAM-004, dos politicas de cambio distintas) esta en 0.1027. El
+# umbral se fija en el medio de ese rango, con margen para ambos lados.
+UMBRAL_DISTANCIA = 0.065
 TOP_PARES_DIAGNOSTICO = 15
 
 PARES_CONTROL = [
@@ -188,15 +194,13 @@ def resolver_colisiones_ids(documentos, cambios):
 # ============================================================
 
 def generar_embeddings(documentos):
-    """Genera un embedding para el contenido de cada documento."""
-    modelo = DefaultEmbeddingFunction()
-
+    """Genera un embedding por documento con el mismo modelo que usa A.4 y B.1."""
     textos = [
         doc["descripcion_semantica"]
         for doc in documentos
     ]
 
-    return modelo(textos)
+    return obtener_embeddings(crear_cliente(), textos)
 
 
 def calcular_distancia_coseno(vector_a, vector_b):

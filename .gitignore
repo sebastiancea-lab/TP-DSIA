@@ -18,6 +18,9 @@ __pycache__/
 entrega_2/indices/
 entrega_2/a5_prueba_volatilidad/*.index
 
+# Base persistente de ChromaDB generada en B.1
+entrega_2/chroma_db/
+
 # Herramientas de prueba y analisis
 .pytest_cache/
 .mypy_cache/

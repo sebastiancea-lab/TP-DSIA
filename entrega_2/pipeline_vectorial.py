@@ -8,35 +8,24 @@ from pathlib import Path
 
 import faiss
 import numpy as np
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+
+from embeddings_gemini import (
+    DIMENSION_EMBEDDINGS,
+    MODELO_EMBEDDINGS,
+    crear_cliente,
+    obtener_embeddings,
+)
 
 
 DIRECTORIO_ENTREGA = Path(__file__).resolve().parent
-DIRECTORIO_PROYECTO = DIRECTORIO_ENTREGA.parent
-ARCHIVO_DATOS = DIRECTORIO_ENTREGA / "base_conocimiento.json"
+# El pipeline consume la salida del ETL de B.5, no el archivo crudo: la base cruda
+# contiene a propósito 3 casi-duplicados y 2 inconsistencias estructurales.
+ARCHIVO_DATOS = DIRECTORIO_ENTREGA / "base_conocimiento_limpia.json"
 DIRECTORIO_INDICES = DIRECTORIO_ENTREGA / "indices"
 ARCHIVO_INDICE = DIRECTORIO_INDICES / "portalia.index"
 ARCHIVO_MANIFIESTO = DIRECTORIO_INDICES / "portalia.index.meta.json"
 
 
-def cargar_configuracion_embeddings() -> tuple[str, int]:
-    load_dotenv(DIRECTORIO_PROYECTO / ".env")
-    modelo = os.getenv("EMBEDDING_MODEL")
-    dimension_texto = os.getenv("EMBEDDING_DIMENSION")
-    if not modelo or not dimension_texto:
-        raise RuntimeError("Faltan EMBEDDING_MODEL o EMBEDDING_DIMENSION en .env.")
-    try:
-        dimension = int(dimension_texto)
-    except ValueError as exc:
-        raise ValueError("EMBEDDING_DIMENSION debe ser un entero positivo.") from exc
-    if dimension <= 0:
-        raise ValueError("EMBEDDING_DIMENSION debe ser un entero positivo.")
-    return modelo, dimension
-
-
-MODELO_EMBEDDINGS, DIMENSION_EMBEDDINGS = cargar_configuracion_embeddings()
 CONSULTAS_PRUEBA = (
     "Necesito un teléfono con red 5G y espacio para guardar muchos videos.",
     "Busco una pantalla grande con tecnología QLED para ver películas.",
@@ -52,25 +41,6 @@ def cargar_documentos() -> list[dict]:
     if len(ids) != len(set(ids)):
         raise ValueError("La base contiene IDs duplicados.")
     return documentos
-
-
-def crear_cliente() -> genai.Client:
-    clave = os.getenv("LLM_API_KEY")
-    if not clave:
-        raise RuntimeError("Falta LLM_API_KEY en el archivo .env del proyecto.")
-    return genai.Client(api_key=clave)
-
-
-def obtener_embeddings(cliente: genai.Client, textos: list[str]) -> np.ndarray:
-    respuesta = cliente.models.embed_content(
-        model=MODELO_EMBEDDINGS,
-        contents=textos,
-        config=types.EmbedContentConfig(output_dimensionality=DIMENSION_EMBEDDINGS),
-    )
-    vectores = np.asarray([item.values for item in respuesta.embeddings], dtype=np.float32)
-    if vectores.shape != (len(textos), DIMENSION_EMBEDDINGS):
-        raise ValueError(f"Dimensiones inesperadas en los embeddings: {vectores.shape}.")
-    return vectores
 
 
 def datos_manifiesto(documentos: list[dict]) -> dict:
