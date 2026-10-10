@@ -110,3 +110,27 @@ uv run python entrega_2/vector_db.py "me queda chica la remera y quiero otro tal
 regeneran localmente y nunca se commitean. Los resultados de las Killer Queries (B.6) están en
 `entrega_2/resultados_killer_queries.md`, y el informe completo (Partes A, B y C) en
 `entrega_2/informe_entrega2.md`.
+
+## Entrega 3 — RAG LCEL (A.1 y A.2)
+
+Las dependencias de todas las entregas se gestionan en `pyproject.toml` y
+`uv.lock`. `requirements.txt` es una exportación de compatibilidad generada por
+uv; no hay un requirements independiente para Parte A.
+
+```bash
+uv sync --locked
+uv run --locked python -m unittest discover -s entrega_3/parte_a -p 'test_*.py' -v
+uv run --locked python entrega_3/parte_a/rag_pipeline.py --verificar-base
+uv run --locked python entrega_3/parte_a/rag_pipeline.py --k 3 "¿Hasta cuándo puedo solicitar una devolución?"
+```
+
+El pipeline requiere las variables existentes en el `.env` de la raíz y la
+colección `portalia_knowledge` de `entrega_2/chroma_db`. Si la persistencia falta,
+informa el problema sin crear otra colección ni cargar documentos. La consulta
+devuelve respuesta, fuentes, textos y metadatos de una única recuperación.
+
+La [guía de Parte A](entrega_3/parte_a/README.md) explica cómo instalar uv,
+configurar Gemini, comprobar datos locales antes de una eventual reconstrucción
+manual y verificar la colección y sus metadatos. La carga original de Entrega 2
+no se ejecuta automáticamente y puede sobrescribir cambios si se usa sobre una
+colección existente.
