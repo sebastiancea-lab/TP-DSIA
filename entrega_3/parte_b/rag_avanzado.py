@@ -166,12 +166,75 @@ def crear_retriever_avanzado(k: int = K_CANDIDATOS):
     return RunnableLambda(recuperar_candidatos, name="retriever_amplio_k8")
 
 
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
+
+
+class GeminiChatModel(BaseChatModel):
+    """Adaptador de Gemini al contrato BaseChatModel de LangChain con telemetría de tokens en LangSmith."""
+
+    cliente: Any = None
+    modelo: str = "gemini-2.5-flash"
+    temperatura: float = 0.0
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        sys_inst = None
+        user_parts = []
+        for m in messages:
+            if m.type == "system":
+                sys_inst = m.content
+            else:
+                user_parts.append(str(m.content))
+        prompt_texto = "\n\n".join(user_parts)
+        conf = {"temperature": self.temperatura}
+        if sys_inst:
+            conf["system_instruction"] = sys_inst
+
+        from google.genai import types
+
+        resp = self.cliente.models.generate_content(
+            model=self.modelo,
+            contents=prompt_texto,
+            config=types.GenerateContentConfig(**conf),
+        )
+        texto = (resp.text or "").strip()
+        usage = {}
+        if hasattr(resp, "usage_metadata") and resp.usage_metadata:
+            usage = {
+                "input_tokens": getattr(resp.usage_metadata, "prompt_token_count", 0),
+                "output_tokens": getattr(resp.usage_metadata, "candidates_token_count", 0),
+                "total_tokens": getattr(resp.usage_metadata, "total_token_count", 0),
+            }
+        ai_msg = AIMessage(content=texto, usage_metadata=usage)
+        return ChatResult(
+            generations=[ChatGeneration(message=ai_msg)],
+            llm_output={
+                "token_usage": {
+                    "prompt_tokens": usage.get("input_tokens", 0),
+                    "completion_tokens": usage.get("output_tokens", 0),
+                    "total_tokens": usage.get("total_tokens", 0),
+                }
+            },
+        )
+
+    @property
+    def _llm_type(self) -> str:
+        return "gemini-chat"
+
+
 def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
     """LLM como juez para evaluar y filtrar los candidatos recuperados."""
     app = rag_a.importar_dependencia("entrega_1.parte_c.app")
     clave, modelo = app.cargar_config()
     cliente = app.construir_cliente(clave)
-    from google.genai import types
+    llm_juez = GeminiChatModel(cliente=cliente, modelo=modelo, temperatura=0.0)
 
     def rerankear(entrada: dict[str, Any]) -> dict[str, Any]:
         pregunta = entrada["pregunta"]
@@ -191,13 +254,8 @@ def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
             k_max=k_max,
         )
 
-        respuesta = cliente.models.generate_content(
-            model=modelo,
-            contents=prompt_str,
-            config=types.GenerateContentConfig(temperature=0),
-        )
-
-        texto_salida = (respuesta.text or "").strip()
+        respuesta_llm = llm_juez.invoke(prompt_str)
+        texto_salida = (respuesta_llm.content or "").strip()
         # Limpiar posibles bloques de código ```json
         if texto_salida.startswith("```"):
             lineas = texto_salida.splitlines()
@@ -235,7 +293,11 @@ def crear_pipeline_avanzado(k_candidatos: int = K_CANDIDATOS, k_seleccionados: i
     """Pipeline RAG Avanzado con LCEL: Retriever k=8 -> LLM Reranker -> Generator Prompt -> LLM."""
     retriever = crear_retriever_avanzado(k=k_candidatos)
     reranker = crear_reranker_llm(k_max=k_seleccionados)
-    llm = rag_a.crear_llm()
+    
+    app = rag_a.importar_dependencia("entrega_1.parte_c.app")
+    clave, modelo = app.cargar_config()
+    cliente = app.construir_cliente(clave)
+    llm = GeminiChatModel(cliente=cliente, modelo=modelo, temperatura=0.0)
 
     prompt_generador = ChatPromptTemplate.from_messages([
         ("system", rag_a.REGLAS),

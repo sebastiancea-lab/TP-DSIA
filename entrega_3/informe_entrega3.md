@@ -116,13 +116,20 @@ El pipeline está instrumentado para emitir telemetría nativa hacia LangSmith c
 * `LANGCHAIN_API_KEY`
 
 #### Evidencia de Ejecución:
-* **Enlace público a la traza interactiva:** [Ver traza completa en LangSmith](https://smith.langchain.com/public/c5b3af71-23e8-4910-8240-c888d1cc0bf4/r/01a1316b-8576-7a71-ae63-16efcee804aa?start_time=2026-10-12T18%3A41%3A32.534276Z)
+* **Enlace público a la traza interactiva:** [Ver traza completa en LangSmith](https://smith.langchain.com/public/1eb8b3b0-a027-4b09-a8de-818e33faf1b8/r)
 * **Captura local:** [`entrega_3/langsmith_trace.png`](langsmith_trace.png)
 
-#### Desglose de Telemetría Registrada:
-* **Latencia total del pipeline:** `48.87 s`
-  * `retriever_amplio_k8`: `1.25 s` (búsqueda de 8 candidatos en ChromaDB)
-  * `reranker_llm_juez`: `9.13 s` (evaluación y filtrado fino con Gemini a $T=0$)
-  * `gemini_portalia`: `38.29 s` (generación final con guardrails)
-* **Reducción de dimensionalidad de contexto:** De **8 candidatos** iniciales a **3 chunks seleccionados** entregados al generador (`POL-CAM-001_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`), eliminando el ruido y resolviendo la omisión de plazos.
+#### Desglose de Telemetría Registrada (Tiempos, Tokens y Filtrado):
+* **Tiempos y Latencia total del pipeline:** `31.06 s`
+  * `retriever_amplio_k8`: `0.48 s` (búsqueda vectorial de los 8 candidatos en ChromaDB)
+  * `reranker_llm_juez`: `15.34 s` (evaluación crítica y selección de relevancia con Gemini a $T=0$)
+  * `GeminiChatModel` (Generación final): `15.13 s` (síntesis de respuesta final respetando guardrails)
+* **Consumo de Tokens (Medición en LangSmith):**
+  * **Total tokens del pipeline:** `1,761 tokens` (Prompt: 1,578 | Generación: 183)
+  * *Reranker LLM Juez:* `720 tokens` (Prompt: 684 | Salida: 36)
+  * *Generador Portalia:* `1,041 tokens` (Prompt: 894 | Salida: 147)
+* **Diferencia entre chunks recuperados y seleccionados:**
+  * **Recuperados ($k=8$):** `POL-CAM-003_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`, `FAQ-001_chk1`, `POL-DEV-001_chk2`, `POL-CAM-002_chk2`, `POL-CAM-001_chk1`, `FAQ-002_chk1`.
+  * **Seleccionados por el Juez ($k=3$):** `POL-CAM-001_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`.
+  * *Impacto:* Reducción de 8 candidatos a 3 documentos de máxima relevancia, descartando fragmentos tangenciales e incorporando `POL-CAM-001_chk1` (plazo de 30 días) para resolver de forma completa la consulta sin superar la ventana óptima de contexto.
 
