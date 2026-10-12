@@ -31,14 +31,22 @@ from google import genai
 from google.genai import errors as genai_errors, types
 from pydantic import ValidationError
 
-from schemas import (
-    SYSTEM_PROMPT,
-    ConsultaPostventa,
-    ExtraccionPostventa,
-    esquema_respuesta_gemini,
-)
+try:
+    from .schemas import (
+        SYSTEM_PROMPT,
+        ConsultaPostventa,
+        ExtraccionPostventa,
+        esquema_respuesta_gemini,
+    )
+except (ImportError, ValueError):
+    from schemas import (
+        SYSTEM_PROMPT,
+        ConsultaPostventa,
+        ExtraccionPostventa,
+        esquema_respuesta_gemini,
+    )
 
-RAIZ = Path(__file__).resolve().parent.parent
+RAIZ = Path(__file__).resolve().parents[2]
 MODELO_POR_DEFECTO = "gemini-3.6-flash"
 
 # Caso guia del dominio (mismo pedido que la evidencia de A.2).

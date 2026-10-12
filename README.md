@@ -111,26 +111,21 @@ regeneran localmente y nunca se commitean. Los resultados de las Killer Queries 
 `entrega_2/resultados_killer_queries.md`, y el informe completo (Partes A, B y C) en
 `entrega_2/informe_entrega2.md`.
 
-## Entrega 3 — RAG LCEL (A.1 y A.2)
+## Entrega 3 — Sistema RAG con LangChain LCEL y RAG Avanzado
 
-Las dependencias de todas las entregas se gestionan en `pyproject.toml` y
-`uv.lock`. `requirements.txt` es una exportación de compatibilidad generada por
-uv; no hay un requirements independiente para Parte A.
+Las dependencias de todas las entregas se gestionan en `pyproject.toml` y `uv.lock`. `requirements.txt` es una exportación de compatibilidad.
 
-```bash
-uv sync --locked
-uv run --locked python -m unittest discover -s entrega_3/parte_a -p 'test_*.py' -v
-uv run --locked python entrega_3/parte_a/rag_pipeline.py --verificar-base
-uv run --locked python entrega_3/parte_a/rag_pipeline.py --k 3 "¿Hasta cuándo puedo solicitar una devolución?"
+### Ejecución del Pipeline Unificado (Partes A y B)
+
+Desde la raíz del repositorio, usando el entorno virtual `.venv`:
+
+```powershell
+# RAG Básico (Parte A) — k=3 sobre colección persistente original
+.\.venv\Scripts\python.exe entrega_3/rag_pipeline.py --modo basico --k 3 "¿Hasta cuándo puedo solicitar una devolución?"
+
+# RAG Avanzado (Parte B) — k=8 candidatos, chunking con solapamiento y LLM Reranker
+.\.venv\Scripts\python.exe entrega_3/rag_pipeline.py --modo avanzado "Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata"
 ```
 
-El pipeline requiere las variables existentes en el `.env` de la raíz y la
-colección `portalia_knowledge` de `entrega_2/chroma_db`. Si la persistencia falta,
-informa el problema sin crear otra colección ni cargar documentos. La consulta
-devuelve respuesta, fuentes, textos y metadatos de una única recuperación.
+El informe académico detallado con la autopsia del RAG básico, la matriz de resiliencia y la resolución con RAG avanzado se encuentra en [`entrega_3/informe_entrega3.md`](entrega_3/informe_entrega3.md). La documentación técnica de la Parte A se encuentra en [`entrega_3/parte_a/README.md`](entrega_3/parte_a/README.md).
 
-La [guía de Parte A](entrega_3/parte_a/README.md) explica cómo instalar uv,
-configurar Gemini, comprobar datos locales antes de una eventual reconstrucción
-manual y verificar la colección y sus metadatos. La carga original de Entrega 2
-no se ejecuta automáticamente y puede sobrescribir cambios si se usa sobre una
-colección existente.
