@@ -3,14 +3,23 @@
 RAG LCEL sobre la colección existente de Portalia: conexión, retriever, prompt,
 Gemini y parser de texto. Conserva las fuentes de la misma recuperación que
 alimenta al LLM. Incluye la matriz A.3 y la demostración de fuentes A.4.
-No implementa B ni C ni ingesta automática.
+Este módulo implementa solo la Parte A y no hace ingesta automática.
+
+> El punto de entrada unificado de la entrega es [`../rag_pipeline.py`](../rag_pipeline.py):
+> importa este módulo (RAG básico) y `../parte_b/rag_avanzado.py` (RAG avanzado) y elige entre
+> ambos con `--modo basico|avanzado`. Este archivo contiene la implementación de la Parte A, que
+> además usan `validacion_rag.py` y los tests.
+> El informe de la entrega es [`../informe_entrega3.md`](../informe_entrega3.md).
 
 ## Dependencias y uv
 
 `pyproject.toml` es la fuente de dependencias y `uv.lock` fija las versiones.
-La única dependencia directa añadida es `langchain-core==1.6.9`; Chroma y
-`google-genai` ya pertenecían al proyecto. Se eliminó el requirements independiente
-de Parte A. El de la raíz es una exportación de uv y no debe editarse manualmente.
+`langchain-core==1.6.9` se añadió para la Parte A; Chroma y `google-genai` ya pertenecían al
+proyecto. Después se sumaron `langchain-text-splitters` (chunking de la Parte B) y `ragas`
+(evaluación de la Parte C). `ragas` arrastra `langchain-community`, que se limita a `<0.4`
+porque la 0.4.x quitó `langchain_community.chat_models.vertexai`, que `ragas 0.4.3` todavía
+importa. Se eliminó el requirements independiente de Parte A. El de la raíz es una exportación
+de uv y no debe editarse manualmente.
 
 Si uv no está en PATH, usar el [instalador oficial de Windows](https://docs.astral.sh/uv/getting-started/installation/),
 sin agregar otro gestor:
@@ -80,9 +89,10 @@ El RAG usa `get_collection` y comprueba existencia, cantidad, modelo/dimensión
 persistidos y dimensión de un vector. Consulta el contenido actual sin volver a
 cargar el JSON, preservando los cambios en caliente que pudiera tener la base.
 
-En esta sesión no existían `entrega_2/chroma_db`, ningún `chroma.sqlite3` en el
-repositorio fuera de `.venv` ni índices `.index` locales. Los dos JSON del corpus
-se comprobaron antes y después y conservaron exactamente su contenido.
+`entrega_2/chroma_db/` está en `.gitignore`: no se versiona y cada integrante la genera
+localmente con `entrega_2/vector_db.py --cargar`. Al 2026-10-19 la base existe en este
+clon (`entrega_2/chroma_db/chroma.sqlite3`). En la sesión de preparación del 10 de octubre
+(ver más abajo) todavía no existía.
 
 ### Reconstrucción manual, solo si se autoriza
 
@@ -164,6 +174,10 @@ aceptable se evita llamar al LLM. Con contexto insuficiente, el prompt exige:
 
 ## Resultado de la preparación — 10 de octubre de 2026
 
+> Registro histórico de esa sesión. Las referencias a la base ausente y a las pruebas reales
+> pendientes ya no reflejan el estado actual: la validación real se completó después y sus
+> resultados están en [`../informe_entrega3.md`](../informe_entrega3.md) (A.3 y A.4).
+
 - uv 0.13.0 se utilizó desde `%TEMP%/tp-sda-uv/bin/uv.exe`, sin instalar otro gestor
   ni modificar el PATH del usuario. `uv.lock` se actualizó y la `.venv` se sincronizó.
 - Se añadió solo `langchain-core==1.6.9` como dependencia directa. Las versiones
@@ -212,12 +226,12 @@ uv run --locked python entrega_3/parte_a/validacion_rag.py
 uv run --locked python entrega_3/parte_a/validacion_rag.py --revisar
 ```
 
-| Caso A.3 | Pregunta (resumen) | Comportamiento esperado / referencia | Estado real actual |
+| Caso A.3 | Pregunta (resumen) | Comportamiento esperado / referencia | Estado (según el informe, A.3) |
 |---|---|---|---|
-| Factual | ¿Cuántos días desde la recepción tengo para solicitar devolución? | 10 días corridos; aceptación sujeta a verificación (`POL-DEV-001`). | Pendiente |
-| Fuera de dominio | ¿Cuál es la capital de Islandia? | Frase de escape exacta de A.2. | Pendiente |
-| Complacencia | Confirmar devolución hasta 90 días sin condiciones. | Rechazar la premisa y explicar plazo y verificación documentados (`POL-DEV-001`). | Pendiente |
-| Sinónimos | El celu anda mal y se tilda; ¿qué datos paso para que revisen si lo cubren? | Recuperar garantía; pedido, equipo, síntomas y desde cuándo, sin diagnóstico ni promesas (`POL-GAR-001`). | Pendiente |
+| Factual | ¿Cuántos días desde la recepción tengo para solicitar devolución? | 10 días corridos; aceptación sujeta a verificación (`POL-DEV-001`). | ✅ Aprobado |
+| Fuera de dominio | ¿Cuál es la capital de Islandia? | Frase de escape exacta de A.2. | ✅ Aprobado |
+| Complacencia | Confirmar devolución hasta 90 días sin condiciones. | Rechazar la premisa y explicar plazo y verificación documentados (`POL-DEV-001`). | ✅ Aprobado |
+| Sinónimos | El celu anda mal y se tilda; ¿qué datos paso para que revisen si lo cubren? | Recuperar garantía; pedido, equipo, síntomas y desde cuándo, sin diagnóstico ni promesas (`POL-GAR-001`). | ✅ Aprobado |
 
 El JSON de terminal muestra preguntas completas, esperado, referencia textual del
 corpus, respuesta, estado y todos los documentos recuperados. El corpus se lee
@@ -242,7 +256,7 @@ de la revisión del contenido de la respuesta en A.3.
 
 Se conserva el estilo LCEL de [clase 6](https://github.com/anderson-ort/iads_2_cuatrimestre/blob/iads3_2026_2c/06_clase/code-sample/04_langchain.py)
 y el contexto explícito y respaldo documental de [clase 7](https://github.com/anderson-ort/iads_2_cuatrimestre/blob/iads3_2026_2c/07_clase/rag-inference-app/src/rag_chain.py).
-No se añadieron dependencias. Las pruebas locales incluyen dobles explícitos y
-bases temporales: aprobarlas no aprueba la matriz real. Continúan pendientes
-las cuatro ejecuciones A.3 y las dos trazas reales A.4 por falta de persistencia
-y credenciales Gemini.
+Las pruebas locales incluyen dobles explícitos y bases temporales: aprobarlas no
+aprueba la matriz real. Las cuatro ejecuciones reales de A.3 figuran como
+aprobadas en el informe. Para A.4, el informe documenta las dos trazas que pide la
+consigna (factual y sinónimos), con fragmento y metadatos de cada fuente.

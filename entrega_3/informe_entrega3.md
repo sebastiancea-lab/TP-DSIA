@@ -8,9 +8,12 @@
 
 ## Parte A — Pipeline RAG con LangChain LCEL
 
-### A.1. Arquitectura de la Cadena y Conexión
+### A.1. Conexión a la Base de Datos
 Para la Parte A se implementó un pipeline RAG clásico sobre la base persistente de **ChromaDB** generada en la Entrega 2 (`portalia_knowledge` en `entrega_2/chroma_db`, distancia coseno y embeddings `gemini-embedding-001` de 768 dimensiones), **sin crear una base nueva ni modificar la persistencia original**.
 
+---
+
+### A.2. Chain LCEL Completo
 La cadena utiliza **LangChain LCEL** estructurada en cuatro componentes desacoplados:
 1. **Retriever (`RetrieverPortalia`):** Recupera los $k$ documentos más cercanos que cumplan con la vigencia activa (`activo=True`) y el umbral de distancia coseno ($\le 0.40$).
 2. **Prompt con Guardrails (`ChatPromptTemplate`):** Aplica directivas estrictas de negocio:
@@ -22,9 +25,11 @@ La cadena utiliza **LangChain LCEL** estructurada en cuatro componentes desacopl
 3. **LLM (`RunnableLambda` sobre Gemini):** Adaptador del SDK oficial de Google Gemini con temperatura $0$ para máxima reproducibilidad y determinismo.
 4. **Parser (`StrOutputParser`):** Formateador de la respuesta final textual.
 
+Además, el chain devuelve junto con la respuesta los documentos fuente de la misma recuperación que alimentó al modelo (ver A.4).
+
 ---
 
-### A.2. Matriz de Validación de Resiliencia
+### A.3. Matriz de Validación de Resiliencia
 Se ejecutaron y validaron las cuatro pruebas de estrés para evaluar el comportamiento del sistema ante diferentes patrones de interacción:
 
 | # | Tipo de Prueba | Consulta del Usuario | Comportamiento Esperado | Documento Clave | Resultado Obtenido | Estado |
@@ -36,11 +41,27 @@ Se ejecutaron y validaron las cuatro pruebas de estrés para evaluar el comporta
 
 ---
 
-### A.3. Trazabilidad de Fuentes y Metadatos
-El pipeline conserva y devuelve las fuentes textuales y los metadatos de la misma recuperación que alimenta al modelo en cada consulta. Ejemplo de trazabilidad en la consulta factual directa:
+### A.4. Trazabilidad de Fuentes y Metadatos
+El pipeline conserva y devuelve las fuentes textuales y los metadatos de la misma recuperación que alimenta al modelo en cada consulta. Se muestran dos consultas de la matriz A.3 (RAG básico, $k=3$).
+
+#### Consulta 1 — Factual directa
+*"¿Dentro de cuántos días desde que recibí el producto puedo solicitar una devolución? ¿Eso garantiza que la acepten?"*
 
 * **Fragmento devuelto:** `"Plazo para solicitar una devolución. El cliente puede iniciar una solicitud de devolución dentro de los 10 días corridos posteriores a la recepción del producto. Para identificar la compra y tramitar la solicitud, debe indicar el número de pedido y el producto que desea devolver; la aceptación queda sujeta a la verificación de las condiciones aplicables."`
 * **Metadatos asociados:** `{'categoria': 'devoluciones', 'activo': True, 'tags_regionales': 'devolución, plazo, 10 días'}`.
+
+#### Consulta 2 — Uso de sinónimos
+*"El celu que compré anda mal y se tilda. ¿Qué datos tengo que pasar para que revisen si lo cubren?"*
+
+Documentos expuestos por el pipeline (ejecución real, fuentes entregadas al LLM):
+
+| # | Documento | Fragmento (inicio) | Metadatos |
+|---|---|---|---|
+| 1 | `POL-GAR-001` | `"Garantía por posible falla de funcionamiento. Si un producto electrónico presenta una falla, el cliente puede informar el número de pedido, el equipo afectado, los síntomas y desde cuándo ocurren. Portalia verifica la compra y las condiciones de garantía antes de indicar el trámite aplicable; el asistente no diagnostica la causa ni promete una reparación, cambio o reintegro antes de la evaluación."` | `{'categoria': 'garantias', 'tags_regionales': 'garantía, falla, defecto', 'activo': True}` |
+| 2 | `POL-CAM-002` | `"Condiciones del producto para realizar un cambio. [...] Si el cliente informa que el equipo llegó dañado o presenta una falla, el caso debe evaluarse por la vía de postventa correspondiente, sin rechazarlo automáticamente como un cambio por preferencia."` | `{'categoria': 'cambios', 'tags_regionales': 'cambio, condiciones, accesorios', 'activo': True}` |
+| 3 | `POL-DEV-002` | `"Condiciones para aceptar una devolución. [...] Si el cliente informa que llegó dañado o presenta una falla, el caso requiere una evaluación específica; no debe rechazarse automáticamente por el estado del producto."` | `{'categoria': 'devoluciones', 'tags_regionales': 'devolución, condiciones, producto dañado', 'activo': True}` |
+
+La recuperación encontró la política de garantía pese a que el cliente escribió "celu" y "se tilda" en lugar de "producto electrónico" y "falla de funcionamiento". La respuesta pide número de pedido, equipo, síntomas y desde cuándo ocurren, y aclara que no se diagnostica ni se promete reparación, cambio o reintegro antes de la evaluación.
 
 ---
 
@@ -79,6 +100,8 @@ Para resolver la fragmentación y límites rígidos de los documentos, se aplic�
 
 El solapamiento garantiza que ninguna regla, excepción o condición quede truncada en el límite entre dos bloques, manteniendo la continuidad contextual del fragmento.
 
+**¿Resuelve la falla de B.1?** Por sí solo, el chunking no alcanza: la falla se debe a la saturación del top-$k$, no a un fragmento cortado. Con $k=3$ los chunks nuevos compiten por los mismos slots. La resolución se logra al combinarlo con la ampliación a $k=8$ y el reranking de B.3 (resultado en B.3.1).
+
 ---
 
 ### B.3. Reranking en Dos Etapas (LLM como Juez)
@@ -96,7 +119,7 @@ Se implementó un pipeline en dos etapas para desacoplar la recuperación de can
 
 ---
 
-### B.4. Resolución Empírica de la Falla
+#### B.3.1. Resolución Empírica de la Falla
 Al ejecutar la misma consulta testigo en el pipeline avanzado (`entrega_3/rag_pipeline.py --modo avanzado`), la respuesta generada fue:
 
 > *"Sobre tu consulta, te informo lo siguiente según nuestras políticas:*  
@@ -109,7 +132,7 @@ Al ejecutar la misma consulta testigo en el pipeline avanzado (`entrega_3/rag_pi
 
 ---
 
-### B.5. Observabilidad con LangSmith
+### B.4. Captura de Traza con LangSmith
 El pipeline está instrumentado para emitir telemetría nativa hacia LangSmith configurando las variables correspondientes en el entorno:
 * `LANGCHAIN_TRACING_V2=true`
 * `LANGCHAIN_PROJECT=tp-portalia`

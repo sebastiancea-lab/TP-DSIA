@@ -119,13 +119,21 @@ Las dependencias de todas las entregas se gestionan en `pyproject.toml` y `uv.lo
 
 Desde la raíz del repositorio, usando el entorno virtual `.venv`:
 
-```powershell
+```bash
 # RAG Básico (Parte A) — k=3 sobre colección persistente original
-.\.venv\Scripts\python.exe entrega_3/rag_pipeline.py --modo basico --k 3 "¿Hasta cuándo puedo solicitar una devolución?"
+uv run python entrega_3/rag_pipeline.py --modo basico --k 3 "¿Hasta cuándo puedo solicitar una devolución?"
 
 # RAG Avanzado (Parte B) — k=8 candidatos, chunking con solapamiento y LLM Reranker
-.\.venv\Scripts\python.exe entrega_3/rag_pipeline.py --modo avanzado "Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata"
+uv run python entrega_3/rag_pipeline.py --modo avanzado "Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata"
+
+# Reconstruye la colección avanzada (chunking con solapamiento)
+uv run python entrega_3/rag_pipeline.py --reindexar
 ```
+
+`entrega_3/parte_b/chroma_db/` (colección avanzada) también está en `.gitignore`: se regenera
+localmente, igual que la base de la Entrega 2 (que hay que cargar antes con
+`entrega_2/vector_db.py --cargar`). Si no existe, el modo avanzado la crea sola en la primera
+ejecución, lo que consume llamadas de embeddings con la API key.
 
 El informe académico detallado con la autopsia del RAG básico, la matriz de resiliencia y la resolución con RAG avanzado se encuentra en [`entrega_3/informe_entrega3.md`](entrega_3/informe_entrega3.md). La documentación técnica de la Parte A se encuentra en [`entrega_3/parte_a/README.md`](entrega_3/parte_a/README.md).
 
