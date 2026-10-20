@@ -135,5 +135,17 @@ localmente, igual que la base de la Entrega 2 (que hay que cargar antes con
 `entrega_2/vector_db.py --cargar`). Si no existe, el modo avanzado la crea sola en la primera
 ejecución, lo que consume llamadas de embeddings con la API key.
 
+### Evaluación con RAGAS (Parte C)
+
+```bash
+# Valida el golden dataset (10 preguntas, 3/3/2/2) sin llamar a la API
+uv run python entrega_3/evaluacion_ragas.py --solo-dataset
+
+# Evalúa básico y avanzado y escribe entrega_3/resultados_ragas.json
+uv run python entrega_3/evaluacion_ragas.py            # --pipeline basico|avanzado|ambos, --resume
+```
+
+Con el plan gratuito de Gemini (15 requests por minuto) la corrida completa tarda varios minutos y puede esperar ante errores 429; si se corta, `--resume` retoma desde los casos ya medidos (`entrega_3/resultados_ragas/` está en `.gitignore`).
+
 El informe académico detallado con la autopsia del RAG básico, la matriz de resiliencia y la resolución con RAG avanzado se encuentra en [`entrega_3/informe_entrega3.md`](entrega_3/informe_entrega3.md). La documentación técnica de la Parte A se encuentra en [`entrega_3/parte_a/README.md`](entrega_3/parte_a/README.md).
 

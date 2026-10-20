@@ -156,3 +156,75 @@ El pipeline está instrumentado para emitir telemetría nativa hacia LangSmith c
   * **Seleccionados por el Juez ($k=3$):** `POL-CAM-001_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`.
   * *Impacto:* Reducción de 8 candidatos a 3 documentos de máxima relevancia, descartando fragmentos tangenciales e incorporando `POL-CAM-001_chk1` (plazo de 30 días) para resolver de forma completa la consulta sin superar la ventana óptima de contexto.
 
+
+---
+
+## Parte C — Evaluación Cuantitativa con RAGAS
+
+Script: [`evaluacion_ragas.py`](evaluacion_ragas.py). Resultados completos por pregunta y por pipeline: [`resultados_ragas.json`](resultados_ragas.json). Se corrió una sola vez sobre las bases recién cargadas, sin evento en caliente.
+
+**Metodología.**
+* **Pipelines evaluados:** RAG básico (colección original, `k=3`, el mismo de B.1) y RAG avanzado (chunking 300/80, `k=8` candidatos, LLM juez que selecciona 3).
+* **Juez de RAGAS (0.4.3):** Gemini consumido por su endpoint compatible con OpenAI (el cliente async de `google-genai` falla con RAGAS 0.4), con `gemini-embedding-001` para Answer Relevancy (`strictness=1`).
+* **Preguntas de escape:** no se puntúan con RAGAS, porque no tienen contexto ni referencia útiles. Se verifica de forma determinista que la respuesta sea la frase de escape. Los promedios ignoran esos casos, por eso cada uno sale de **n=8** preguntas.
+
+### C.1. Golden Dataset
+
+| ID | Tipo | Pregunta | Documentos de referencia |
+|---|---|---|---|
+| S1 | simple | ¿Cuántos días tengo para pedir un cambio de producto? | POL-CAM-001 |
+| S2 | simple | Mi pedido figura como despachado, ¿me llega hoy? | ENV-003 |
+| S3 | simple | ¿Qué datos tengo que dar para iniciar una devolución? | FAQ-002 |
+| C1 | compleja | Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata | POL-CAM-001, POL-CAM-004, POL-DEV-001 |
+| C2 | compleja | Me aceptaron la devolución, ¿qué verificaron y ya tengo el reintegro? | POL-DEV-002, POL-DEV-003 |
+| C3 | compleja | La notebook me llegó con la caja mojada y además no prende, ¿qué hago? | POL-GAR-001, POL-GAR-002 |
+| E1 | escape | ¿Aceptan pago en cuotas con tarjeta de crédito? | — |
+| E2 | escape | ¿Cuánto cuesta el televisor Vista 50 QLED? | — |
+| I1 | informal | che el auri se me rompió a la semana, me lo cambian o q onda | POL-GAR-001 |
+| I2 | informal | quiero el mismo celu pero en otro color, se puede? | POL-CAM-003 |
+
+Las respuestas esperadas (ground truth) están en `GOLDEN_DATASET` y se redactaron a partir del texto de `base_conocimiento_limpia.json`. En las de escape el esperado es la frase de escape del pipeline.
+
+### C.2. Línea Base (RAG Básico)
+
+| ID | Faithfulness | Answer Relevancy | Context Precision | Context Recall |
+|---|---|---|---|---|
+| S1 | 1.00 | 0.82 | 1.00 | 1.00 |
+| S2 | 1.00 | 0.93 | 1.00 | 1.00 |
+| S3 | 1.00 | 0.73 | 1.00 | 1.00 |
+| C1 | 0.50 | 0.75 | 0.00 | 0.67 |
+| C2 | 1.00 | 0.65 | 0.50 | 1.00 |
+| C3 | 0.70 | 0.88 | 1.00 | 1.00 |
+| I1 | 1.00 | 0.60 | 1.00 | 1.00 |
+| I2 | 1.00 | 0.79 | 1.00 | 1.00 |
+| **Promedio (n=8)** | **0.900** | **0.768** | **0.812** | **0.958** |
+
+El punto débil del básico es C1, el caso testigo de B.1: no recupera `POL-CAM-001` (contexto `POL-DEV-001`, `POL-CAM-002`, `POL-CAM-004`), por eso su Context Precision es 0.00 y su Recall 0.67.
+
+### C.3. Comparación: Básico vs. Avanzado
+
+| Métrica | Básico | Avanzado | Delta |
+|---|---|---|---|
+| Faithfulness | 0.900 | 0.890 | −0.010 |
+| Answer Relevancy | 0.768 | 0.645 | −0.123 |
+| Context Precision | 0.812 | 0.937 | **+0.125** |
+| Context Recall | 0.958 | 0.958 | 0.000 |
+
+Abstención correcta en las 2 preguntas de escape en ambos pipelines, y ninguna de las 8 restantes se abstuvo.
+
+**Hay mejora en Context Precision (+0.125).** El avanzado no solo recupera mejor el caso C1 (`POL-CAM-001_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`: precision 0.00 → 1.00), sino que su contexto tiene menos ruido en general. Es consistente con lo observado en B.3.1.
+
+**Los deltas negativos no son uniformes.** Con n=8 pesa una sola pregunta:
+* La caída de Answer Relevancy se explica sobre todo por S2, que pasa de 0.93 a 0.00: la respuesta avanzada es correcta, pero agrega *"No poseo información sobre la fecha de entrega de tu pedido"* y RAGAS la lee como evasiva. En las demás preguntas la diferencia es de ±0.2 como máximo.
+* La caída de Faithfulness viene de C1 (0.50 → 0.29). Al descomponer la respuesta avanzada en afirmaciones, el juez rechazó 5 de 7, y ninguna es una invención sobre las políticas: la mayoría son datos o inferencias que salen de la consulta y no de los documentos ("han transcurrido 15 días", "se encuentra dentro del plazo de 30 días"), o la lectura de "devolución" como devolución del dinero, que el chunk no aclara. La única que sí agrega algo es el cierre "la disponibilidad requiere una consulta al inventario", que ningún chunk recuperado dice. Es decir, Faithfulness castiga que la respuesta aplique el plazo al caso concreto, que es justamente lo que el cliente pide.
+* Context Recall no se mueve (0.958 en ambos): los dos recuperan la información clave, salvo la que se pierde en C1 en ambos casos.
+
+### C.4. Diagnóstico de la Métrica más Baja
+
+La métrica más baja del RAG avanzado es **Answer Relevancy (0.645)**.
+
+**Causa probable.** Las instrucciones del generador (`REGLAS`) piden responder todos los aspectos y sumar condiciones documentadas, y ordenan usar la frase de escape cuando falta información. En el avanzado esto produce respuestas con descargos parciales (S2) o con datos adicionales no preguntados. Answer Relevancy se calcula regenerando preguntas a partir de la respuesta y comparándolas con la original, así que todo lo que no responde la pregunta la baja. Además, C2 e I1 también puntúan bajo en el avanzado (0.65 y 0.63), aunque ahí la diferencia con el básico es mínima, así que no atribuyo ese valor a una causa en particular.
+
+**Acción técnica propuesta.** Ajustar el prompt del generador del pipeline avanzado para (1) responder primero y de forma directa lo que se preguntó, (2) reservar la frase de escape para cuando el contexto no alcanza para responder nada, sin mezclarla como descargo parcial, y (3) limitar la respuesta a lo que pidió el cliente, sin agregar condiciones no consultadas. Después, volver a correr `uv run python entrega_3/evaluacion_ragas.py --pipeline avanzado` y verificar que Answer Relevancy suba sin que baje Faithfulness. Esta mejora no se aplicó en esta entrega.
+
+**Limitaciones.** El dataset es chico (8 preguntas puntuadas) y una corrida usa un LLM como juez, por lo que las diferencias de pocas centésimas, como la de Faithfulness, no son concluyentes. Además, el juez no es determinista: al recalcular Faithfulness de C1 en una segunda pasada, el básico dio 0.80 en lugar de 0.50 (8 de 10 afirmaciones respaldadas) y el avanzado repitió 0.29 (2 de 7). La tabla conserva los valores de la corrida guardada en `resultados_ragas.json`; la diferencia de −0.010 en el promedio no es concluyente y, con ese recálculo, C1 pasaría a favorecer al básico en Faithfulness. Los resultados corresponden a la base recién cargada, sin el evento en caliente de la Entrega 2.

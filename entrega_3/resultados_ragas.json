@@ -1,0 +1,405 @@
+{
+  "resumen": {
+    "basico": {
+      "faithfulness": {
+        "promedio": 0.9,
+        "casos": 8
+      },
+      "answer_relevancy": {
+        "promedio": 0.7682738964073628,
+        "casos": 8
+      },
+      "context_precision": {
+        "promedio": 0.8124999999583333,
+        "casos": 8
+      },
+      "context_recall": {
+        "promedio": 0.9583333333333334,
+        "casos": 8
+      },
+      "abstenciones_correctas": 10,
+      "total_casos": 10
+    },
+    "avanzado": {
+      "faithfulness": {
+        "promedio": 0.8898809523809523,
+        "casos": 8
+      },
+      "answer_relevancy": {
+        "promedio": 0.6454507256433771,
+        "casos": 8
+      },
+      "context_precision": {
+        "promedio": 0.9374999999375,
+        "casos": 8
+      },
+      "context_recall": {
+        "promedio": 0.9583333333333334,
+        "casos": 8
+      },
+      "abstenciones_correctas": 10,
+      "total_casos": 10
+    }
+  },
+  "casos": {
+    "basico": [
+      {
+        "id": "S1",
+        "tipo": "simple",
+        "pregunta": "¿Cuántos días tengo para pedir un cambio de producto?",
+        "respuesta": "Tenés un plazo de 30 días corridos posteriores a la recepción del pedido para solicitar un cambio.\n\nPara iniciar el trámite, debés indicar el número de pedido, el artículo que querés cambiar y la variante o nuevo producto deseado. Tené en cuenta que iniciar la solicitud no implica que el cambio esté aprobado, ya que Portalia debe verificar el plazo, el estado del artículo y la disponibilidad actual.",
+        "respuesta_esperada": "Se puede solicitar un cambio dentro de los 30 días corridos posteriores a la recepción del pedido.",
+        "ids_contexto": [
+          "POL-CAM-001",
+          "POL-DEV-001",
+          "FAQ-001"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.815895796570438,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      },
+      {
+        "id": "S2",
+        "tipo": "simple",
+        "pregunta": "Mi pedido figura como despachado, ¿me llega hoy?",
+        "respuesta": "Que un pedido figure como \"despachado\" significa que salió de la etapa de preparación y fue entregado al circuito logístico, pero esto no implica que esté en reparto ni que vaya a llegar el mismo día.\n\nPara conocer el estado actual o una fecha actualizada, es necesario consultar el seguimiento vigente del envío. Si el pedido supera la fecha prevista, se debe verificar la última actualización de la empresa logística, ya que no es posible confirmar una fecha de entrega sin esa información.",
+        "respuesta_esperada": "No necesariamente. Despachado significa que salió de la preparación y fue entregado al circuito logístico, pero no implica que esté en reparto ni que llegue ese mismo día; para una fecha actualizada se consulta el seguimiento vigente del envío.",
+        "ids_contexto": [
+          "ENV-003",
+          "ENV-002",
+          "ENV-001"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.9303982740032107,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      },
+      {
+        "id": "S3",
+        "tipo": "simple",
+        "pregunta": "¿Qué datos tengo que dar para iniciar una devolución?",
+        "respuesta": "Para iniciar una devolución en Portalia, debes proporcionar el número de pedido, el artículo que deseas devolver y el motivo de la solicitud.\n\nTen en cuenta lo siguiente:\n* **Plazo:** La solicitud debe realizarse dentro de los 10 días corridos posteriores a la recepción del producto.\n* **Evaluación:** Presentar la solicitud no implica que la devolución o el reintegro estén aprobados. Portalia debe verificar que el producto corresponda al pedido, revisar el estado del artículo y sus accesorios, y realizar una evaluación específica en caso de daños o fallas.",
+        "respuesta_esperada": "Hay que informar el número de pedido, el artículo que se desea devolver y el motivo de la solicitud.",
+        "ids_contexto": [
+          "FAQ-002",
+          "POL-DEV-001",
+          "POL-DEV-002"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.7338626573627309,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      },
+      {
+        "id": "C1",
+        "tipo": "compleja",
+        "pregunta": "Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata",
+        "respuesta": "Sobre tu consulta, te informo lo siguiente según nuestras políticas:\n\n**Respecto a la devolución:**\nNo es posible iniciar una solicitud de devolución, ya que el plazo establecido es de 10 días corridos posteriores a la recepción del producto, y tu compra fue realizada hace 15 días.\n\n**Respecto al cambio:**\nPara evaluar un cambio por otro modelo, se deben cumplir las siguientes condiciones:\n*   El artículo debe corresponder al pedido original.\n*   Debe presentarse con todos los accesorios incluidos originalmente.\n*   El producto no debe presentar señales de uso ni daños atribuibles al cliente.\n\nSi se cumplen estas condiciones, el proceso requiere verificar la disponibilidad actual del nuevo artículo en el catálogo, consultar los precios vigentes e informar si existe una diferencia de precio a gestionar. La aceptación del cambio queda sujeta a la verificación de estos puntos.",
+        "respuesta_esperada": "El cambio es posible porque el plazo es de 30 días corridos desde la recepción; por otro producto se verifican las condiciones y la disponibilidad, y se informa la diferencia de precio y cómo se gestiona antes de registrar nada. La devolución se puede solicitar solo dentro de los 10 días corridos posteriores a la recepción, por lo que a los 15 días ya no corresponde.",
+        "ids_contexto": [
+          "POL-DEV-001",
+          "POL-CAM-002",
+          "POL-CAM-004"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.7512688802425477,
+        "context_precision": 0.0,
+        "context_recall": 0.6666666666666666
+      },
+      {
+        "id": "C2",
+        "tipo": "compleja",
+        "pregunta": "Me aceptaron la devolución, ¿qué verificaron y ya tengo el reintegro?",
+        "respuesta": "Sobre tu consulta, te informo lo siguiente:\n\n*   **Sobre el reintegro:** Una solicitud de devolución aceptada no significa que el dinero ya haya sido reintegrado. Portalia inicia el proceso de reintegro únicamente después de completar las verificaciones correspondientes. El estado efectivo del mismo debe consultarse directamente en el sistema de pagos o postventa.\n*   **Sobre las verificaciones:** Para aceptar una devolución, Portalia verifica que la solicitud se haya iniciado dentro de los 10 días corridos posteriores a la recepción y que el producto corresponda al pedido indicado. Además, se revisa el estado del artículo y sus accesorios. En casos donde el cliente informa que el producto llegó dañado o presenta una falla, se realiza una evaluación específica del caso.\n\nLa aceptación de la solicitud está sujeta a estas condiciones y evaluaciones.",
+        "respuesta_esperada": "Portalia verifica que la solicitud se haya iniciado dentro de los 10 días corridos de la recepción, que el producto corresponda al pedido y el estado del artículo y sus accesorios. Que la devolución esté aceptada no significa que el dinero ya se haya reintegrado: el reintegro se inicia tras completar las verificaciones y su estado se consulta en el sistema de pagos o postventa, sin prometer fecha.",
+        "ids_contexto": [
+          "POL-DEV-003",
+          "POL-DEV-002",
+          "POL-DEV-001"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.6475135674650964,
+        "context_precision": 0.49999999995,
+        "context_recall": 1.0
+      },
+      {
+        "id": "C3",
+        "tipo": "compleja",
+        "pregunta": "La notebook me llegó con la caja mojada y además no prende, ¿qué hago?",
+        "respuesta": "Si recibiste un producto con el embalaje mojado y el equipo no enciende, te informo los pasos y condiciones de nuestra atención postventa:\n\n*   **Documentación del daño:** Portalia puede solicitarte fotografías del producto, de sus accesorios y del paquete (incluyendo el estado del embalaje) para evaluar el caso. Es importante que sepas que esta evidencia se vincula a tu pedido para una revisión técnica; no se atribuye el daño automáticamente a tu responsabilidad ni se garantiza una resolución sin dicha evaluación.\n*   **Evaluación del caso:** Al reportar que el equipo llegó dañado o presenta una falla (como que no enciende), el caso debe ser derivado al área de postventa para una evaluación específica. No se debe rechazar tu solicitud automáticamente por el estado del producto.\n*   **Condiciones generales:** Para cualquier trámite de cambio o devolución, Portalia verifica que el artículo corresponda al pedido original y que se presente con todos sus accesorios. En el caso de devoluciones, se debe considerar que la solicitud debe iniciarse dentro de los 10 días corridos posteriores a la recepción.\n\nTe sugiero contactar a nuestro equipo de atención al cliente para iniciar el proceso de evaluación de tu caso.",
+        "respuesta_esperada": "Se puede informar el número de pedido, el equipo, los síntomas y desde cuándo ocurren, y Portalia puede pedir fotografías del producto, los accesorios y el paquete para documentar el estado. La evidencia se vincula al pedido y se deriva a evaluación de postventa y garantía; no se atribuye el daño al cliente ni se promete reparación, cambio o reintegro antes de la revisión.",
+        "ids_contexto": [
+          "POL-GAR-002",
+          "POL-CAM-002",
+          "POL-DEV-002"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 0.7,
+        "answer_relevancy": 0.8770343890538771,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      },
+      {
+        "id": "E1",
+        "tipo": "escape",
+        "pregunta": "¿Aceptan pago en cuotas con tarjeta de crédito?",
+        "respuesta": "No poseo información suficiente en la documentación disponible para responder esa consulta",
+        "respuesta_esperada": "No poseo información suficiente en la documentación disponible para responder esa consulta",
+        "ids_contexto": [],
+        "se_abstuvo": true,
+        "abstencion_ok": true,
+        "faithfulness": null,
+        "answer_relevancy": null,
+        "context_precision": null,
+        "context_recall": null
+      },
+      {
+        "id": "E2",
+        "tipo": "escape",
+        "pregunta": "¿Cuánto cuesta el televisor Vista 50 QLED?",
+        "respuesta": "No poseo información suficiente en la documentación disponible para responder esa consulta, ya que no se especifican precios para el televisor Portalia Vista 50 QLED.\n\nRespecto a este modelo, la documentación indica que cuenta con resolución 4K, tecnología de pantalla QLED y compatibilidad con HDR. Cabe aclarar que, según el catálogo, este producto no figura con stock de demostración.",
+        "respuesta_esperada": "No poseo información suficiente en la documentación disponible para responder esa consulta",
+        "ids_contexto": [
+          "PROD-006",
+          "PROD-005",
+          "PROD-004"
+        ],
+        "se_abstuvo": true,
+        "abstencion_ok": true,
+        "faithfulness": null,
+        "answer_relevancy": null,
+        "context_precision": null,
+        "context_recall": null
+      },
+      {
+        "id": "I1",
+        "tipo": "informal",
+        "pregunta": "che el auri se me rompió a la semana, me lo cambian o q onda",
+        "respuesta": "Para gestionar tu caso, es necesario informar el número de pedido, el equipo afectado, los síntomas de la falla y desde cuándo ocurren.\n\nSobre tu consulta, tené en cuenta lo siguiente:\n\n*   **Garantía por falla:** Portalia debe verificar la compra y las condiciones de garantía antes de indicar el trámite aplicable. No es posible prometer una reparación, cambio o reintegro antes de que se realice la evaluación técnica.\n*   **Condiciones para cambios:** Para evaluar cualquier solicitud, se verifica que el artículo corresponda al pedido, que se presente con sus accesorios originales y se revisa si existen señales de uso o daños atribuibles al cliente.\n*   **Daños al recibir:** Si el producto llegó con daños visibles (golpes, roturas o humedad), se pueden solicitar fotografías del equipo, sus accesorios y el embalaje para documentar el estado al momento de la recepción.\n\nEl caso será derivado a evaluación de postventa para su revisión, sin que esto implique una aprobación automática de cambio o resolución.",
+        "respuesta_esperada": "Se puede informar el número de pedido, el equipo afectado, los síntomas y desde cuándo ocurren; Portalia verifica la compra y las condiciones de garantía antes de indicar el trámite, sin prometer reparación, cambio ni reintegro antes de la evaluación.",
+        "ids_contexto": [
+          "POL-GAR-001",
+          "POL-CAM-002",
+          "POL-GAR-002"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.5963817562353613,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      },
+      {
+        "id": "I2",
+        "tipo": "informal",
+        "pregunta": "quiero el mismo celu pero en otro color, se puede?",
+        "respuesta": "Sí, es posible solicitar el cambio por otra variante (como el color) de un mismo modelo de producto.\n\nPara iniciar el trámite, debes indicar tu número de pedido, el artículo que deseas cambiar y la variante que prefieres. Ten en cuenta que iniciar el trámite no equivale a tener el cambio aprobado.\n\nAntes de confirmar la solicitud, Portalia debe verificar que se cumplan las condiciones de cambio y consultar en el inventario actualizado si la variante elegida está disponible.",
+        "respuesta_esperada": "Sí, se puede solicitar el cambio por otra variante (color o capacidad) del mismo modelo. Antes de confirmar, Portalia verifica las condiciones de cambio y consulta el inventario actualizado para ver si la variante elegida está disponible.",
+        "ids_contexto": [
+          "POL-CAM-003",
+          "POL-CAM-004",
+          "FAQ-001"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.7938358503256405,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    ],
+    "avanzado": [
+      {
+        "id": "S1",
+        "tipo": "simple",
+        "pregunta": "¿Cuántos días tengo para pedir un cambio de producto?",
+        "respuesta": "Para solicitar un cambio de producto en Portalia, disponés de un plazo de 30 días corridos posteriores a la recepción del pedido. Para iniciar el trámite, es necesario que identifiques el pedido y el producto que deseas cambiar.",
+        "respuesta_esperada": "Se puede solicitar un cambio dentro de los 30 días corridos posteriores a la recepción del pedido.",
+        "ids_contexto": [
+          "POL-CAM-001_chk1",
+          "POL-DEV-001_chk1",
+          "POL-DEV-002_chk1"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.827985759901604,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      },
+      {
+        "id": "S2",
+        "tipo": "simple",
+        "pregunta": "Mi pedido figura como despachado, ¿me llega hoy?",
+        "respuesta": "Que un pedido figure como \"despachado\" significa que salió de la preparación y fue entregado al circuito logístico, pero esto no implica que esté en reparto ni que vaya a llegar el mismo día.\n\nNo poseo información sobre la fecha de entrega de tu pedido. Para conocer el siguiente movimiento o una fecha actualizada, se debe consultar el seguimiento vigente del envío.",
+        "respuesta_esperada": "No necesariamente. Despachado significa que salió de la preparación y fue entregado al circuito logístico, pero no implica que esté en reparto ni que llegue ese mismo día; para una fecha actualizada se consulta el seguimiento vigente del envío.",
+        "ids_contexto": [
+          "ENV-003_chk1",
+          "ENV-003_chk2",
+          "ENV-002_chk2"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 0.8333333333333334,
+        "answer_relevancy": 0.0,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      },
+      {
+        "id": "S3",
+        "tipo": "simple",
+        "pregunta": "¿Qué datos tengo que dar para iniciar una devolución?",
+        "respuesta": "Para iniciar una devolución en Portalia, debes proporcionar la siguiente información:\n\n*   Número de pedido.\n*   Artículo que deseas devolver.\n*   Motivo de la solicitud.\n\nTen en cuenta que, para tramitar la solicitud, Portalia realiza una validación previa de la identidad del pedido, el artículo y los datos requeridos. La aceptación final de la devolución queda sujeta a la verificación de las condiciones aplicables y las reglas de negocio vigentes.",
+        "respuesta_esperada": "Hay que informar el número de pedido, el artículo que se desea devolver y el motivo de la solicitud.",
+        "ids_contexto": [
+          "FAQ-002_chk1",
+          "POL-DEV-001_chk2",
+          "PROC-002_chk1"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.7979326865346272,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      },
+      {
+        "id": "C1",
+        "tipo": "compleja",
+        "pregunta": "Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata",
+        "respuesta": "Sobre tu consulta, te informo lo siguiente según nuestras políticas:\n\n*   **Cambios:** Podés solicitar un cambio por otro artículo del catálogo de Portalia, ya que te encontrás dentro del plazo de 30 días corridos posteriores a la recepción del pedido. Para iniciar el proceso, deberás identificar el pedido y el producto específico.\n*   **Devoluciones:** No es posible solicitar la devolución del dinero, ya que el plazo para iniciar dicha solicitud es de 10 días corridos posteriores a la recepción del producto y han transcurrido 15 días.\n\nTené en cuenta que la disponibilidad de productos para realizar un cambio requiere una consulta al inventario.",
+        "respuesta_esperada": "El cambio es posible porque el plazo es de 30 días corridos desde la recepción; por otro producto se verifican las condiciones y la disponibilidad, y se informa la diferencia de precio y cómo se gestiona antes de registrar nada. La devolución se puede solicitar solo dentro de los 10 días corridos posteriores a la recepción, por lo que a los 15 días ya no corresponde.",
+        "ids_contexto": [
+          "POL-CAM-001_chk1",
+          "POL-CAM-004_chk1",
+          "POL-DEV-001_chk1"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 0.2857142857142857,
+        "answer_relevancy": 0.8152094493928732,
+        "context_precision": 0.9999999999,
+        "context_recall": 0.6666666666666666
+      },
+      {
+        "id": "C2",
+        "tipo": "compleja",
+        "pregunta": "Me aceptaron la devolución, ¿qué verificaron y ya tengo el reintegro?",
+        "respuesta": "Sobre tu consulta, es importante aclarar lo siguiente:\n\n*   **Sobre el reintegro:** Una solicitud de devolución aceptada no significa que el dinero ya haya sido reintegrado. Portalia inicia el proceso de reintegro únicamente después de completar las verificaciones correspondientes. El estado efectivo del reembolso debe consultarse directamente en el sistema de pagos o postventa.\n*   **Sobre las verificaciones:** Para aceptar una devolución, Portalia realiza una validación previa que incluye confirmar la identidad del pedido, el artículo involucrado, los datos requeridos y las reglas de negocio aplicables. Asimismo, se verifica que la solicitud se haya iniciado dentro de los 10 días corridos posteriores a la recepción, que el producto corresponda al pedido y se revisa el estado del artículo y sus accesorios para determinar cómo continuar el trámite.",
+        "respuesta_esperada": "Portalia verifica que la solicitud se haya iniciado dentro de los 10 días corridos de la recepción, que el producto corresponda al pedido y el estado del artículo y sus accesorios. Que la devolución esté aceptada no significa que el dinero ya se haya reintegrado: el reintegro se inicia tras completar las verificaciones y su estado se consulta en el sistema de pagos o postventa, sin prometer fecha.",
+        "ids_contexto": [
+          "POL-DEV-003_chk1",
+          "POL-DEV-002_chk1",
+          "PROC-002_chk1"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.649509963314137,
+        "context_precision": 0.49999999995,
+        "context_recall": 1.0
+      },
+      {
+        "id": "C3",
+        "tipo": "compleja",
+        "pregunta": "La notebook me llegó con la caja mojada y además no prende, ¿qué hago?",
+        "respuesta": "Para gestionar tu caso, te informo los procedimientos establecidos:\n\n*   **Por el embalaje dañado:** Si recibiste el producto con el embalaje mojado, Portalia puede solicitarte fotografías del producto, sus accesorios y el paquete para documentar su estado al momento de la recepción.\n*   **Por la falla de funcionamiento:** Para reportar que el equipo no enciende, debes informar el número de pedido, el equipo afectado, los síntomas y desde cuándo ocurren.\n\nTené en cuenta que toda evidencia presentada se vinculará a tu pedido y será derivada al área de postventa para su evaluación. No se debe atribuir el daño automáticamente al cliente ni se puede prometer una resolución sin que el caso pase por dicha revisión.",
+        "respuesta_esperada": "Se puede informar el número de pedido, el equipo, los síntomas y desde cuándo ocurren, y Portalia puede pedir fotografías del producto, los accesorios y el paquete para documentar el estado. La evidencia se vincula al pedido y se deriva a evaluación de postventa y garantía; no se atribuye el daño al cliente ni se promete reparación, cambio o reintegro antes de la revisión.",
+        "ids_contexto": [
+          "POL-GAR-002_chk1",
+          "POL-GAR-001_chk1",
+          "POL-GAR-002_chk2"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.6795940262994521,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      },
+      {
+        "id": "E1",
+        "tipo": "escape",
+        "pregunta": "¿Aceptan pago en cuotas con tarjeta de crédito?",
+        "respuesta": "No poseo información suficiente en la documentación disponible para responder esa consulta.",
+        "respuesta_esperada": "No poseo información suficiente en la documentación disponible para responder esa consulta",
+        "ids_contexto": [
+          "FAQ-003_chk1",
+          "PROC-003_chk1",
+          "ENV-001_chk1"
+        ],
+        "se_abstuvo": true,
+        "abstencion_ok": true,
+        "faithfulness": null,
+        "answer_relevancy": null,
+        "context_precision": null,
+        "context_recall": null
+      },
+      {
+        "id": "E2",
+        "tipo": "escape",
+        "pregunta": "¿Cuánto cuesta el televisor Vista 50 QLED?",
+        "respuesta": "No poseo información suficiente en la documentación disponible para responder esa consulta, ya que no se especifica el precio del televisor Portalia Vista 50 QLED.\n\nRespecto a la disponibilidad, el catálogo indica que el producto no se encuentra en stock de demostración. Para consultar la disponibilidad actual, podés indicar el modelo y la variante que necesitás.",
+        "respuesta_esperada": "No poseo información suficiente en la documentación disponible para responder esa consulta",
+        "ids_contexto": [
+          "PROD-006_chk1",
+          "FAQ-003_chk1"
+        ],
+        "se_abstuvo": true,
+        "abstencion_ok": true,
+        "faithfulness": null,
+        "answer_relevancy": null,
+        "context_precision": null,
+        "context_recall": null
+      },
+      {
+        "id": "I1",
+        "tipo": "informal",
+        "pregunta": "che el auri se me rompió a la semana, me lo cambian o q onda",
+        "respuesta": "Para gestionar una posible falla en tu producto, debes informar el número de pedido, el equipo afectado, los síntomas y desde cuándo ocurren.\n\nSobre tu consulta, tené en cuenta lo siguiente:\n\n*   **Evaluación:** Portalia debe verificar la compra y las condiciones de garantía antes de determinar el trámite aplicable. No es posible confirmar una reparación, cambio o reintegro antes de dicha evaluación.\n*   **Condiciones para cambios:** Para evaluar un cambio, se verifica que el artículo corresponda al pedido y que se presente con todos los accesorios incluidos originalmente. Además, se revisa si el producto presenta señales de uso o daños atribuibles al cliente antes de aprobar cualquier solicitud.\n\nNo poseo información suficiente en la documentación disponible para responder sobre el catálogo de productos.",
+        "respuesta_esperada": "Se puede informar el número de pedido, el equipo afectado, los síntomas y desde cuándo ocurren; Portalia verifica la compra y las condiciones de garantía antes de indicar el trámite, sin prometer reparación, cambio ni reintegro antes de la evaluación.",
+        "ids_contexto": [
+          "POL-GAR-001_chk1",
+          "POL-GAR-001_chk2",
+          "POL-CAM-002_chk1"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.6279779837841609,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      },
+      {
+        "id": "I2",
+        "tipo": "informal",
+        "pregunta": "quiero el mismo celu pero en otro color, se puede?",
+        "respuesta": "Sí, es posible solicitar el cambio por otra variante (como el color o la capacidad) de un mismo modelo de producto electrónico.\n\nPara iniciar el proceso, debes indicar el número de pedido, el artículo que deseas cambiar y la nueva variante que preferís recibir. Tené en cuenta que, antes de confirmar la solicitud, Portalia debe verificar que se cumplan las condiciones de cambio y consultar en el inventario actualizado la disponibilidad de la variante elegida.",
+        "respuesta_esperada": "Sí, se puede solicitar el cambio por otra variante (color o capacidad) del mismo modelo. Antes de confirmar, Portalia verifica las condiciones de cambio y consulta el inventario actualizado para ver si la variante elegida está disponible.",
+        "ids_contexto": [
+          "POL-CAM-003_chk1",
+          "FAQ-001_chk1",
+          "POL-CAM-003_chk2"
+        ],
+        "se_abstuvo": false,
+        "abstencion_ok": true,
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.7653959359201624,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    ]
+  }
+}
