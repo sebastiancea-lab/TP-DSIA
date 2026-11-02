@@ -4,6 +4,12 @@
 **Dominio:** Portalia (Atención Postventa de E-commerce)  
 **Asignatura:** Desarrollo de Sistemas de Inteligencia Artificial  
 
+**Alcance de las evidencias.** Las respuestas, la traza y las métricas conservadas en este
+informe corresponden a la versión evaluada de Entrega 3: diez preguntas y el prompt
+generador anterior. El mantenimiento amplía el dataset a quince casos y modifica solo
+el prompt generador avanzado, sin nuevas consultas a Gemini, evaluaciones RAGAS ni
+reindexaciones. Todavía no hay métricas del nuevo prompt o del dataset ampliado.
+
 ---
 
 ## Parte A — Pipeline RAG con LangChain LCEL
@@ -68,7 +74,11 @@ La recuperación encontró la política de garantía pese a que el cliente escri
 ## Parte B — RAG Avanzado: Chunking y Reranking
 
 ### B.1. Identificación de una Falla Real del RAG Básico
-En el RAG básico de la Parte A, la recuperación opera con una ventana estrecha de $k=3$ sobre documentos completos. Ante consultas compuestas del dominio, el sistema evidencia una falla crítica:
+El baseline usado en esta demostración y en la evaluación histórica fija explícitamente
+$k=3$ sobre documentos completos (`entrega_3/rag_pipeline.py --modo basico` y
+`K_BASICO=3` en el evaluador). El módulo de Parte A tiene otro valor predeterminado,
+`K_POR_DEFECTO=10`; no se modificó. La evidencia siguiente corresponde a $k=3$ y no
+demuestra que ocurra lo mismo con $k=10$.
 
 #### Caso Testigo:
 > *"Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata"*
@@ -76,31 +86,38 @@ En el RAG básico de la Parte A, la recuperación opera con una ventana estrecha
 #### Evidencia del RAG Básico ($k=3$):
 Al ejecutar la consulta en el RAG básico, ChromaDB recuperó:
 1. `POL-DEV-001`: Plazo de devolución (10 días).
-2. `POL-CAM-002`: Condiciones de conservación para cambios (accesorios, sin marcas de uso).
+2. `POL-CAM-002`: Verificaciones del estado del producto y sus accesorios para cambios.
 3. `POL-CAM-004`: Gestión de diferencia de precio al cambiar por otro producto del catálogo.
 
 **Respuesta generada por el LLM:**
-* Informa que la devolución ya no es posible porque el plazo de 10 días venció.
-* Explica cómo se calcula la diferencia de precio para el cambio.
+* Informa que la devolución ya no es posible porque el plazo de 10 días venció, aunque el usuario indicó la fecha de compra y no la de recepción.
+* Indica consultar precios y disponibilidad e informar la diferencia de precio para el cambio.
 * ⚠️ **Falla / Omisión crítica:** El asistente **no le responde al cliente si a los 15 días puede realizar el cambio**. Omitió por completo el plazo general para cambios.
 
 #### Causa Técnica:
-* **Saturación de slots del top-$k$ ($k=3$):** La consulta requería cuatro políticas complementarias (`POL-DEV-001`, `POL-CAM-001`, `POL-CAM-002`, `POL-CAM-004`). Al limitar la recuperación a 3 fragmentos, la política fundamental `POL-CAM-001` (que establece el **plazo de 30 días corridos para cambios**) quedó excluida de la ventana de contexto.
-* **Comportamiento ante los guardrails:** En cumplimiento de las reglas del prompt (no inventar datos ausentes en el contexto), Gemini no arriesga un plazo y deja la inquietud principal del usuario sin respuesta.
+* **Cobertura insuficiente del top-$k$:** entre las políticas complementarias necesarias para responder la consulta, faltó `POL-CAM-001`, que establece el plazo de **30 días corridos desde la recepción** para solicitar cambios. La selección de tres documentos por similitud dejó esa política fuera del contexto; no fue un dato presente que el generador ignorara.
+* **Clasificación según la consigna:** el caso se aproxima a **Ruido en el contexto** por la competencia entre información relacionada al seleccionar el contexto. Es una aproximación: los tres documentos recuperados eran pertinentes, por lo que no se demuestra que hubiera documentos irrelevantes. La descripción técnica más precisa es una falla de recuperación por cobertura insuficiente.
+* **Categorías que no demuestra la evidencia:** no hubo **Chunk cortado**, porque se recuperaban documentos completos; tampoco **Lost in the Middle**, porque la política omitida nunca llegó al contexto. No corresponde atribuir el fallo a su posición dentro del prompt.
+* **Límite adicional de la respuesta:** no mencionar un plazo ausente evita inventarlo, pero no hace correcta toda la respuesta: la conclusión sobre devolución también requiere conocer cuándo se recibió el producto.
 
 ---
 
 ### B.2. Reindexación con Solapamiento (Chunking con Overlap)
-Para resolver la fragmentación y límites rígidos de los documentos, se aplicó un preprocesamiento avanzado utilizando `RecursiveCharacterTextSplitter`:
+En la implementación avanzada original se aplicó un preprocesamiento con `RecursiveCharacterTextSplitter`:
 * **Configuración:** `chunk_size = 300` caracteres, `chunk_overlap = 80` caracteres.
 * **Separadores semánticos:** `[". ", "\n\n", "\n", ", ", " "]`.
 * **Comparativa de volumen:**
   * **Documentos originales monolíticos:** 38 documentos.
   * **Chunks generados con solapamiento:** **57 chunks**.
 
-El solapamiento garantiza que ninguna regla, excepción o condición quede truncada en el límite entre dos bloques, manteniendo la continuidad contextual del fragmento.
+El solapamiento reduce la pérdida de continuidad entre bloques, pero no garantiza que
+toda regla o excepción quede completa en cada chunk. Además, recuperar solo algunos
+chunks puede dejar fuera condiciones presentes en otros fragmentos del mismo documento.
 
-**¿Resuelve la falla de B.1?** Por sí solo, el chunking no alcanza: la falla se debe a la saturación del top-$k$, no a un fragmento cortado. Con $k=3$ los chunks nuevos compiten por los mismos slots. La resolución se logra al combinarlo con la ampliación a $k=8$ y el reranking de B.3 (resultado en B.3.1).
+**¿Resuelve la falla de B.1?** El chunking por sí solo no asegura mayor cobertura.
+La mejora observada combina **chunking, recuperación amplia de ocho candidatos y
+reranking**. En la demostración esa combinación incorporó el plazo omitido; no se
+aisló el efecto de cada componente ni se probó una resolución completa de C1.
 
 ---
 
@@ -111,16 +128,16 @@ Se implementó un pipeline en dos etapas para desacoplar la recuperación de can
    ChromaDB recupera los 8 fragmentos más cercanos por similitud coseno. Al ampliar la ventana a 8, la política omitida `POL-CAM-001_chk1` (plazo de cambios) ingresa exitosamente en la posición 7 de los candidatos.
 
 2. **Etapa 2 — Filtrado y Scoring con LLM Juez:**  
-   Un prompt intermedio especializado con Gemini ($T=0$) recibe la consulta del cliente y los 8 chunks candidatos. Su función exclusiva es evaluar la relevancia factual, descartar el ruido (fichas de productos, FAQs o políticas no aplicables) y seleccionar únicamente los 3 mejores fragmentos.  
+   Un prompt intermedio especializado con Gemini ($T=0$) recibe la consulta y los 8 chunks candidatos. Evalúa su aporte para responder y selecciona hasta 3 fragmentos. En el mantenimiento se respetan selecciones vacías y se controlan IDs únicos, conocidos y el límite máximo, sin cambiar el prompt del juez.
    * **Chunks seleccionados por el Reranker:**
      * `POL-CAM-001_chk1`: Plazo general para cambios (30 días).
-     * `POL-CAM-004_chk1`: Cambio por otro producto y diferencia de precio.
+     * `POL-CAM-004_chk1`: Primer fragmento de la política de cambio por otro producto.
      * `POL-DEV-001_chk1`: Plazo para devoluciones (10 días).
 
 ---
 
-#### B.3.1. Resolución Empírica de la Falla
-Al ejecutar la misma consulta testigo en el pipeline avanzado (`entrega_3/rag_pipeline.py --modo avanzado`), la respuesta generada fue:
+#### B.3.1. Mejora Observada y Límites de la Resolución
+En la demostración original del pipeline avanzado (`entrega_3/rag_pipeline.py --modo avanzado`) se registró esta respuesta. Se conserva como evidencia histórica, no como salida del nuevo prompt:
 
 > *"Sobre tu consulta, te informo lo siguiente según nuestras políticas:*  
 > * ***Cambios:*** *Puedes solicitar un cambio por otro artículo del catálogo de Portalia dentro de los 30 días corridos posteriores a la recepción de tu pedido. Para iniciar el proceso, debes identificar el pedido y el producto correspondiente.*  
@@ -128,7 +145,14 @@ Al ejecutar la misma consulta testigo en el pipeline avanzado (`entrega_3/rag_pi
 >  
 > ***Dado que mencionas haber recibido los auriculares hace 15 días, el plazo para solicitar una devolución ya ha expirado, pero aún te encuentras dentro del periodo habilitado para gestionar un cambio por otro producto.***"*
 
-**Conclusión:** La falla quedó completamente resuelta. El cliente recibe una respuesta integral, resolviendo ambas intenciones (devolución y cambio) y con certeza sobre los plazos aplicables.
+**Alcance:** se recuperó y mencionó el plazo general de cambios que faltaba en el
+baseline. Sin embargo, **C1 no quedó completamente resuelta**: la pregunta dice
+"compré hace 15 días", no "recibí hace 15 días". Hace falta pedir la fecha de recepción
+y explicar los plazos de manera condicional. También falta explicar la gestión de la
+diferencia de precio solicitada, con respaldo documental y sin inventar importes.
+Tener el ID de una política entre las fuentes no prueba que se hayan recuperado y
+explicado todas sus condiciones. Estas limitaciones también deben revisarse en la
+respuesta C1 guardada en la corrida RAGAS.
 
 ---
 
@@ -154,21 +178,28 @@ El pipeline está instrumentado para emitir telemetría nativa hacia LangSmith c
 * **Diferencia entre chunks recuperados y seleccionados:**
   * **Recuperados ($k=8$):** `POL-CAM-003_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`, `FAQ-001_chk1`, `POL-DEV-001_chk2`, `POL-CAM-002_chk2`, `POL-CAM-001_chk1`, `FAQ-002_chk1`.
   * **Seleccionados por el Juez ($k=3$):** `POL-CAM-001_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`.
-  * *Impacto:* Reducción de 8 candidatos a 3 documentos de máxima relevancia, descartando fragmentos tangenciales e incorporando `POL-CAM-001_chk1` (plazo de 30 días) para resolver de forma completa la consulta sin superar la ventana óptima de contexto.
+  * *Impacto observado:* reducción de 8 candidatos a 3 fragmentos e incorporación de `POL-CAM-001_chk1` (plazo de 30 días). Esto mejora la cobertura del plazo, sin demostrar que toda la consulta esté resuelta ni que tres fragmentos sean una ventana óptima.
 
 
 ---
 
 ## Parte C — Evaluación Cuantitativa con RAGAS
 
-Script: [`evaluacion_ragas.py`](evaluacion_ragas.py). Resultados completos por pregunta y por pipeline: [`resultados_ragas.json`](resultados_ragas.json). Se corrió una sola vez sobre las bases recién cargadas, sin evento en caliente.
+Script: [`evaluacion_ragas.py`](evaluacion_ragas.py). Los resultados históricos por
+pregunta y pipeline están en [`resultados_ragas.json`](resultados_ragas.json), que se
+conserva intacto. Corresponden a diez preguntas y al prompt anterior, sobre bases recién
+cargadas y sin evento en caliente. Las tablas C.2 y C.3 describen únicamente esa corrida.
 
 **Metodología.**
 * **Pipelines evaluados:** RAG básico (colección original, `k=3`, el mismo de B.1) y RAG avanzado (chunking 300/80, `k=8` candidatos, LLM juez que selecciona 3).
 * **Juez de RAGAS (0.4.3):** Gemini consumido por su endpoint compatible con OpenAI (el cliente async de `google-genai` falla con RAGAS 0.4), con `gemini-embedding-001` para Answer Relevancy (`strictness=1`).
-* **Preguntas de escape:** no se puntúan con RAGAS, porque no tienen contexto ni referencia útiles. Se verifica de forma determinista que la respuesta sea la frase de escape. Los promedios ignoran esos casos, por eso cada uno sale de **n=8** preguntas.
+* **Preguntas de escape:** no se puntúan con RAGAS. El evaluador histórico detectaba la frase como subcadena, sin exigir coincidencia exacta. El evaluador mantenido registra por separado abstención exacta y coincidencia parcial. Los promedios históricos excluyen los dos casos de escape y usan **n=8**, no el dataset actual de quince casos.
 
 ### C.1. Golden Dataset
+
+El dataset actual contiene **15 preguntas: 5 simples, 5 complejas, 2 de escape y
+3 informales**. Las diez preguntas siguientes, sus respuestas esperadas y sus
+documentos de referencia se conservaron sin modificaciones:
 
 | ID | Tipo | Pregunta | Documentos de referencia |
 |---|---|---|---|
@@ -183,9 +214,30 @@ Script: [`evaluacion_ragas.py`](evaluacion_ragas.py). Resultados completos por p
 | I1 | informal | che el auri se me rompió a la semana, me lo cambian o q onda | POL-GAR-001 |
 | I2 | informal | quiero el mismo celu pero en otro color, se puede? | POL-CAM-003 |
 
-Las respuestas esperadas (ground truth) están en `GOLDEN_DATASET` y se redactaron a partir del texto de `base_conocimiento_limpia.json`. En las de escape el esperado es la frase de escape del pipeline.
+Las respuestas esperadas completas están en `GOLDEN_DATASET`. Los cinco casos nuevos
+se verificaron contra `entrega_2/base_conocimiento_limpia.json`, incluyendo metadatos
+cuando corresponden, y todavía no tienen resultados RAGAS:
 
-### C.2. Línea Base (RAG Básico)
+| ID / tipo | Pregunta nueva | Resumen de la respuesta esperada | Documentos de referencia |
+|---|---|---|---|
+| S4 / simple | ¿El monitor Detail 27 USB-C permite transmitir video y cargar una notebook con un solo cable? ¿Qué hay que verificar? | Sí, para una notebook compatible; antes de recomendar la carga se verifica la potencia requerida por el equipo. | PROD-018 |
+| S5 / simple | ¿Cuándo se deriva una consulta a un operador humano y qué información debe acompañarla? | Ante identificación insegura, información indispensable que el cliente no puede aportar o decisión manual; incluir motivo, datos verificados y contexto, sin afirmar aprobación. | PROC-001 |
+| C4 / compleja | Quiero cambiar por otro producto, pero todavía no me informaron la diferencia de precio ni acepté los términos. ¿Pueden registrar el cambio igual? | No; verificar pedido, artículo, condiciones, disponibilidad y precios, informar diferencia y gestión, y obtener aceptación antes de ejecutar. | POL-CAM-004, PROC-002 |
+| C5 / compleja | El Nova 5G 256 figura sin stock de demostración. ¿Eso significa que hoy no puedo comprarlo? ¿Cómo se confirma? | El indicador demo en falso no determina stock real; consultar inventario del modelo y variante, sin fingir una consulta realizada. | PROD-003, FAQ-003, PROC-003 |
+| I3 / informal | che, ya pasó la fecha de entrega y el correo no actualiza nada, ¿dónde está el paquete y cuándo cae? | Identificar el pedido y consultar backend y última información logística; sin confirmación, no inventar ubicación, causa ni fecha. | ENV-001, ENV-002 |
+
+La ampliación cubre compatibilidad técnica, derivación humana, aceptación previa a
+operaciones, límites del stock demo y demora logística con lenguaje informal. En los
+casos de escape el esperado sigue siendo la frase exacta del pipeline.
+
+**Limitación conservada en C1:** su referencia histórica aplica los plazos como si
+los quince días fueran desde la recepción, aunque la pregunta solo menciona la compra.
+Se mantiene por el requisito de no modificar los diez casos originales. La próxima
+evaluación debe registrar esta ambigüedad y revisar semánticamente C1: una respuesta
+condicional que pida la fecha de recepción puede ser correcta aunque difiera de esa
+referencia. Su puntaje automático aislado no basta para juzgar el nuevo prompt.
+
+### C.2. Línea Base Histórica (RAG Básico, Diez Casos)
 
 | ID | Faithfulness | Answer Relevancy | Context Precision | Context Recall |
 |---|---|---|---|---|
@@ -199,9 +251,11 @@ Las respuestas esperadas (ground truth) están en `GOLDEN_DATASET` y se redactar
 | I2 | 1.00 | 0.79 | 1.00 | 1.00 |
 | **Promedio (n=8)** | **0.900** | **0.768** | **0.812** | **0.958** |
 
-El punto débil del básico es C1, el caso testigo de B.1: no recupera `POL-CAM-001` (contexto `POL-DEV-001`, `POL-CAM-002`, `POL-CAM-004`), por eso su Context Precision es 0.00 y su Recall 0.67.
+En C1 falta `POL-CAM-001` entre las fuentes del básico (`POL-DEV-001`, `POL-CAM-002`,
+`POL-CAM-004`), lo que demuestra cobertura incompleta. El juez asignó Context Precision
+0.00 y Recall 0.67; esos puntajes no demuestran que los tres documentos fueran irrelevantes.
 
-### C.3. Comparación: Básico vs. Avanzado
+### C.3. Comparación Histórica: Básico vs. Avanzado
 
 | Métrica | Básico | Avanzado | Delta |
 |---|---|---|---|
@@ -210,21 +264,78 @@ El punto débil del básico es C1, el caso testigo de B.1: no recupera `POL-CAM-
 | Context Precision | 0.812 | 0.937 | **+0.125** |
 | Context Recall | 0.958 | 0.958 | 0.000 |
 
-Abstención correcta en las 2 preguntas de escape en ambos pipelines, y ninguna de las 8 restantes se abstuvo.
+El evaluador histórico marcó correctos los dos escapes en ambos pipelines por
+coincidencia de subcadena. Con el contrato de igualdad exacta, solo E1 del básico
+coincide: E1 avanzado agrega un punto y E2 agrega explicaciones en ambos pipelines.
+Esta revisión no modifica los flags ni los puntajes del JSON histórico. Ninguna de las
+ocho preguntas restantes fue marcada como abstención por aquel evaluador.
 
-**Hay mejora en Context Precision (+0.125).** El avanzado no solo recupera mejor el caso C1 (`POL-CAM-001_chk1`, `POL-CAM-004_chk1`, `POL-DEV-001_chk1`: precision 0.00 → 1.00), sino que su contexto tiene menos ruido en general. Es consistente con lo observado en B.3.1.
+**La corrida registra mayor Context Precision (+0.125).** En C1 el avanzado incorpora
+`POL-CAM-001_chk1` y el puntaje pasa de 0.00 a 1.00. Esto es consistente con la mejora
+de cobertura observada en B.3.1, sin probar ausencia de omisiones ni aislar el efecto
+del chunking, la recuperación amplia o el reranker.
 
-**Los deltas negativos no son uniformes.** Con n=8 pesa una sola pregunta:
-* La caída de Answer Relevancy se explica sobre todo por S2, que pasa de 0.93 a 0.00: la respuesta avanzada es correcta, pero agrega *"No poseo información sobre la fecha de entrega de tu pedido"* y RAGAS la lee como evasiva. En las demás preguntas la diferencia es de ±0.2 como máximo.
-* La caída de Faithfulness viene de C1 (0.50 → 0.29). Al descomponer la respuesta avanzada en afirmaciones, el juez rechazó 5 de 7, y ninguna es una invención sobre las políticas: la mayoría son datos o inferencias que salen de la consulta y no de los documentos ("han transcurrido 15 días", "se encuentra dentro del plazo de 30 días"), o la lectura de "devolución" como devolución del dinero, que el chunk no aclara. La única que sí agrega algo es el cierre "la disponibilidad requiere una consulta al inventario", que ningún chunk recuperado dice. Es decir, Faithfulness castiga que la respuesta aplique el plazo al caso concreto, que es justamente lo que el cliente pide.
+**Los deltas negativos no son uniformes.** Con n=8 pesan especialmente algunos casos:
+* Answer Relevancy cae sobre todo en S2 (0.93 → 0.00), que agrega *"No poseo información sobre la fecha de entrega de tu pedido"*. Una posible lectura como evasión es una hipótesis; el JSON no conserva la explicación interna del juez y no permite confirmarla.
+* En C1 Faithfulness pasa de 0.50 a 0.29. No corresponde atribuirlo exclusivamente a una penalización injustificada de inferencias: la respuesta asume una fecha de recepción que el cliente no dio. Deben revisarse las afirmaciones y el contexto exacto antes de concluir sobre la fidelidad. La omisión de la diferencia de precio es, además, un problema de completitud; por sí sola no explica un puntaje de Faithfulness.
 * Context Recall no se mueve (0.958 en ambos): los dos recuperan la información clave, salvo la que se pierde en C1 en ambos casos.
 
 ### C.4. Diagnóstico de la Métrica más Baja
 
-La métrica más baja del RAG avanzado es **Answer Relevancy (0.645)**.
+La métrica más baja del RAG avanzado en la corrida histórica es **Answer Relevancy
+(0.645)**. Ese valor no mide el prompt mantenido ni el dataset de quince preguntas.
 
-**Causa probable.** Las instrucciones del generador (`REGLAS`) piden responder todos los aspectos y sumar condiciones documentadas, y ordenan usar la frase de escape cuando falta información. En el avanzado esto produce respuestas con descargos parciales (S2) o con datos adicionales no preguntados. Answer Relevancy se calcula regenerando preguntas a partir de la respuesta y comparándolas con la original, así que todo lo que no responde la pregunta la baja. Además, C2 e I1 también puntúan bajo en el avanzado (0.65 y 0.63), aunque ahí la diferencia con el básico es mínima, así que no atribuyo ese valor a una causa en particular.
+**Dónde se deteriora.** Los mayores descensos de Answer Relevancy guardados son:
 
-**Acción técnica propuesta.** Ajustar el prompt del generador del pipeline avanzado para (1) responder primero y de forma directa lo que se preguntó, (2) reservar la frase de escape para cuando el contexto no alcanza para responder nada, sin mezclarla como descargo parcial, y (3) limitar la respuesta a lo que pidió el cliente, sin agregar condiciones no consultadas. Después, volver a correr `uv run python entrega_3/evaluacion_ragas.py --pipeline avanzado` y verificar que Answer Relevancy suba sin que baje Faithfulness. Esta mejora no se aplicó en esta entrega.
+| Caso | Básico | Avanzado | Diferencia |
+|---|---|---|---|
+| S2: despachado | 0.930 | 0.000 | −0.930 |
+| C3: embalaje mojado y falla | 0.877 | 0.680 | −0.197 |
+| I2: otro color | 0.794 | 0.765 | −0.028 |
 
-**Limitaciones.** El dataset es chico (8 preguntas puntuadas) y una corrida usa un LLM como juez, por lo que las diferencias de pocas centésimas, como la de Faithfulness, no son concluyentes. Además, el juez no es determinista: al recalcular Faithfulness de C1 en una segunda pasada, el básico dio 0.80 en lugar de 0.50 (8 de 10 afirmaciones respaldadas) y el avanzado repitió 0.29 (2 de 7). La tabla conserva los valores de la corrida guardada en `resultados_ragas.json`; la diferencia de −0.010 en el promedio no es concluyente y, con ese recálculo, C1 pasaría a favorecer al básico en Faithfulness. Los resultados corresponden a la base recién cargada, sin el evento en caliente de la Entrega 2.
+S2 explica aproximadamente el 95% de la caída promedio neta. C2 e I1 mantienen valores
+bajos, pero mejoran ligeramente. Las ocho respuestas avanzadas puntuadas son más cortas
+que las básicas; no se puede explicar la caída únicamente por extensión.
+
+**Hipótesis y evidencia textual.** El prompt anterior pedía, además de lo solicitado,
+incluir condiciones y evaluaciones documentadas. Esa obligación favorece información
+lateral: I1 termina hablando de falta de información sobre el catálogo, algo no pedido;
+S3 agrega validaciones a una pregunta sobre datos para iniciar el trámite. En S2 aparece
+un descargo sobre la fecha, aunque sí hay información para explicar qué significa
+"despachado". Estos ejemplos justifican enfocar el prompt, pero no prueban por sí solos
+la causa interna de cada puntaje del juez ni garantizan una mejora cuantitativa.
+
+**Cambio aplicado, pendiente de evaluación real.** El generador avanzado ahora usa
+`REGLAS_GENERADOR_AVANZADO`, propio de `parte_b/rag_avanzado.py`. Conserva las reglas de
+respaldo documental, corrección de premisas falsas, protección ante instrucciones en
+los datos y límites sobre operaciones, stock y estados reales. La Parte A y el prompt
+del reranker permanecen intactos. El nuevo alcance exige:
+
+1. Responder primero la pregunta concreta y todos sus aspectos respaldados.
+2. Incluir solo condiciones indispensables, evitando información lateral no solicitada.
+3. Distinguir compra de recepción; si falta la fecha de recepción, explicar plazos
+   condicionalmente y pedirla, sin concluir que vencieron o siguen habilitados.
+4. Responder lo respaldado de una consulta parcial y señalar el dato concreto faltante,
+   sin insertar la frase de escape como descargo parcial.
+5. Si ninguna parte solicitada puede responderse, devolver únicamente la frase de
+   escape exacta, sin puntuación ni explicaciones adicionales.
+
+**Validación y próximos pasos.** Las pruebas locales verifican el dataset, sus fuentes,
+el prompt enviado al doble del generador y las regresiones de seguridad. No verifican
+que Gemini obedezca siempre esas instrucciones. No se ejecutaron consultas reales ni
+RAGAS durante este mantenimiento y no se reindexó ninguna colección.
+
+La evaluación real deberá revisar primero S2, C3, I1 y C1, incluyendo fecha de recepción,
+diferencia de precio, fidelidad y abstenciones exactas. Después podrá evaluar ambos
+pipelines sobre los mismos quince casos, con bases y configuración controladas, en un
+experimento nuevo según el [README](../README.md#evaluación-con-ragas-parte-c). No se deben
+mezclar parciales previos ni comparar directamente el promedio de quince preguntas con
+el histórico de diez como si la diferencia aislara el efecto del prompt. La ambigüedad
+de la referencia C1 debe constar en la revisión semántica.
+
+**Limitaciones históricas.** La corrida puntúa solo ocho preguntas y usa un LLM como
+juez con `strictness=1` para Answer Relevancy. Las diferencias pequeñas no son
+concluyentes. El informe original también consignó un recálculo exploratorio de
+Faithfulness de C1 (básico 0.80 y avanzado 0.29); no se repitió aquí ni reemplaza los
+valores 0.50 y 0.29 de la corrida guardada. Todas las tablas históricas conservan los
+valores de `resultados_ragas.json`, correspondientes a bases sin evento en caliente.
