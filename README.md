@@ -18,7 +18,6 @@ sean la autoridad** sobre el estado real del pedido, el stock y las políticas d
 - Mariel Garcik
 - Federico Chiesa
 - Lucas Rodríguez Goñi
-- Sebastián Cea
 - Lucas Markowicz
 
 ## Cómo correr el script
@@ -163,7 +162,9 @@ separado; solo la frase exacta aprueba un caso de escape.
 
 El dataset actual tiene quince casos y el generador avanzado usa un prompt propio;
 sus cambios y limitaciones están en [`entrega_3/informe_entrega3.md`](entrega_3/informe_entrega3.md).
-Todavía no se evaluó esa versión con servicios reales. `entrega_3/resultados_ragas.json`
-conserva exclusivamente la corrida histórica de diez preguntas y el prompt anterior.
+La evaluación vigente (quince preguntas y el prompt avanzado actual) está en
+`entrega_3/resultados_ragas_15casos.json`, copia del `resultados.json` del experimento
+`entrega3-15casos`. `entrega_3/resultados_ragas.json` conserva exclusivamente la corrida
+histórica de diez preguntas y el prompt anterior; no deben compararse directamente.
 La documentación técnica de la Parte A se encuentra en [`entrega_3/parte_a/README.md`](entrega_3/parte_a/README.md).
 

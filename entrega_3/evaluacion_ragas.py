@@ -368,7 +368,9 @@ def evaluar_pipeline(nombre: str, juez: dict, retomar: bool, directorio: Path) -
         }
         filas.append(fila)
         # Un JSONL válido puede terminar sin salto de línea tras una interrupción.
-        necesita_salto = ruta.stat().st_size > 0 and not ruta.read_bytes().endswith(b"\n")
+        # Al retomar, el parcial de este pipeline puede no existir todavía.
+        necesita_salto = (ruta.exists() and ruta.stat().st_size > 0
+                          and not ruta.read_bytes().endswith(b"\n"))
         with ruta.open("a", encoding="utf-8") as f:
             if necesita_salto:
                 f.write("\n")

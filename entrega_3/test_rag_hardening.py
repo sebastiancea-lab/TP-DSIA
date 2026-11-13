@@ -300,6 +300,22 @@ class EvaluacionTest(unittest.TestCase):
         with patch.object(evaluacion, "GOLDEN_DATASET", casos):
             self.assertEqual(evaluacion.cargar_parciales(ruta), filas)
 
+    def test_resume_sin_parcial_previo_crea_el_archivo(self):
+        # Corrida "ambos" cortada durante el básico: el parcial del avanzado nunca se creó.
+        casos = evaluacion.GOLDEN_DATASET[:2]
+        ruta = self.ruta / "parcial_avanzado.jsonl"
+        self.assertFalse(ruta.exists())
+        cadena = Mock()
+        cadena.invoke.return_value = {"respuesta": "Respuesta local", "documentos": []}
+        with patch.object(evaluacion, "GOLDEN_DATASET", casos), \
+             patch.object(evaluacion, "crear_pipeline", return_value=cadena), \
+             patch.object(evaluacion, "medir", return_value={m: 0.5 for m in evaluacion.METRICAS}), \
+             redirect_stdout(io.StringIO()):
+            filas = evaluacion.evaluar_pipeline("avanzado", {}, True, self.ruta)
+        self.assertEqual([f["id"] for f in filas], [c["id"] for c in casos])
+        with patch.object(evaluacion, "GOLDEN_DATASET", casos):
+            self.assertEqual(evaluacion.cargar_parciales(ruta), filas)
+
     def test_resume_completo_no_crea_pipeline(self):
         ruta = self.ruta / "parcial_basico.jsonl"
         ruta.write_text(json.dumps(self.fila()) + "\n", encoding="utf-8")
