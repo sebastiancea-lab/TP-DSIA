@@ -10,17 +10,23 @@ aiohttp==3.14.3
     #   langchain-community
 aiosignal==1.4.0
     # via aiohttp
+aiosqlite==0.22.1
+    # via langgraph-checkpoint-sqlite
 annotated-doc==0.0.5
-    # via typer
+    # via
+    #   fastapi
+    #   typer
 annotated-types==0.8.0
     # via pydantic
 anyio==4.15.1
     # via
+    #   fastapi
     #   google-genai
     #   httpx
     #   httpx2
     #   langsmith
     #   openai
+    #   starlette
     #   watchfiles
 appdirs==1.4.4
     # via ragas
@@ -79,10 +85,14 @@ durationpy==0.11
     # via kubernetes
 faiss-cpu==1.15.0
     # via tp-sda
+fastapi==0.162.7
+    # via tp-sda
 filelock==3.32.7
     # via
     #   datasets
     #   huggingface-hub
+filetype==1.2.0
+    # via langchain-google-genai
 flatbuffers==25.12.19
     # via onnxruntime
 frozenlist==1.8.0
@@ -96,7 +106,9 @@ fsspec==2026.7.0
 google-auth==2.57.1
     # via google-genai
 google-genai==2.22.0
-    # via tp-sda
+    # via
+    #   langchain-google-genai
+    #   tp-sda
 googleapis-common-protos==1.75.3
     # via opentelemetry-exporter-otlp-proto-grpc
 grpcio==1.84.0
@@ -123,6 +135,7 @@ httpx==0.28.1
     #   huggingface-hub
     #   langchain-core
     #   langgraph-sdk
+    #   tp-sda
 httpx-sse==0.4.3
     # via langchain-community
 httpx2==2.13.1
@@ -175,6 +188,7 @@ langchain-core==1.6.9
     # via
     #   langchain
     #   langchain-community
+    #   langchain-google-genai
     #   langchain-openai
     #   langchain-text-splitters
     #   langgraph
@@ -183,6 +197,8 @@ langchain-core==1.6.9
     #   langgraph-sdk
     #   ragas
     #   tp-sda
+langchain-google-genai==4.4.1
+    # via tp-sda
 langchain-openai==1.7.0
     # via ragas
 langchain-protocol==0.0.19
@@ -192,11 +208,16 @@ langchain-protocol==0.0.19
 langchain-text-splitters==1.1.3
     # via tp-sda
 langgraph==1.2.16
-    # via langchain
-langgraph-checkpoint==4.3.0
+    # via
+    #   langchain
+    #   tp-sda
+langgraph-checkpoint==4.3.1
     # via
     #   langgraph
+    #   langgraph-checkpoint-sqlite
     #   langgraph-prebuilt
+langgraph-checkpoint-sqlite==3.1.3
+    # via tp-sda
 langgraph-prebuilt==1.1.1
     # via langgraph
 langgraph-sdk==0.4.8
@@ -205,6 +226,7 @@ langsmith==0.14.7
     # via
     #   langchain-community
     #   langchain-core
+    #   tp-sda
 markdown-it-py==4.2.0
     # via rich
 markupsafe==3.0.4
@@ -251,6 +273,7 @@ openai==3.3.0
 opentelemetry-api==1.44.0
     # via
     #   chromadb
+    #   fastapi
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
@@ -313,10 +336,12 @@ pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementatio
 pydantic==2.13.5
     # via
     #   chromadb
+    #   fastapi
     #   google-genai
     #   instructor
     #   langchain
     #   langchain-core
+    #   langchain-google-genai
     #   langgraph
     #   langsmith
     #   openai
@@ -407,6 +432,10 @@ sniffio==1.3.1
     #   openai
 sqlalchemy==2.1.5
     # via langchain-community
+sqlite-vec==0.1.9
+    # via langgraph-checkpoint-sqlite
+starlette==1.10.0
+    # via fastapi
 tenacity==9.1.4
     # via
     #   chromadb
@@ -442,6 +471,7 @@ typing-extensions==4.16.0
     #   aiosignal
     #   anyio
     #   chromadb
+    #   fastapi
     #   google-genai
     #   grpcio
     #   httpx2
@@ -458,12 +488,14 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   referencing
     #   sqlalchemy
+    #   starlette
     #   typing-inspect
     #   typing-inspection
 typing-inspect==0.9.0
     # via dataclasses-json
 typing-inspection==0.4.4
     # via
+    #   fastapi
     #   pydantic
     #   pydantic-settings
 tzdata==2026.5 ; sys_platform == 'emscripten' or sys_platform == 'win32'
@@ -478,7 +510,9 @@ uuid-utils==0.17.1
     #   langchain-core
     #   langsmith
 uvicorn==0.53.0
-    # via chromadb
+    # via
+    #   chromadb
+    #   tp-sda
 uvloop==0.22.1 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
     # via uvicorn
 watchfiles==1.2.0

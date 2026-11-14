@@ -41,9 +41,12 @@ Y completar en `.env`:
 | Variable | Descripción |
 |---|---|
 | `LLM_API_KEY` | API key de modelo de LLM. **Obligatoria.** |
-| `LLM_MODEL` | Modelo de LLM. Opcional; por defecto `gemini-3.6-flash`. |
+| `LLM_MODEL` | Modelo de LLM. Opcional; por defecto `gemini-3.1-flash-lite` (el validado en la Entrega 4). |
 | `EMBEDDING_MODEL` | Modelo de embeddings (Entrega 2). Obligatoria para `entrega_2/`; por defecto `gemini-embedding-001`. |
 | `EMBEDDING_DIMENSION` | Dimensión de los embeddings (Entrega 2). Obligatoria para `entrega_2/`; por defecto `768`. |
+| `DB_PATH` | Archivo SQLite de la memoria del agente (Entrega 4). Opcional; por defecto `entrega_4/datos/memoria.sqlite3`. |
+| `MAX_ITERACIONES` | Tope de vueltas agente-herramientas por consulta (Entrega 4). Opcional; por defecto `5`. |
+| `LOG_LEVEL` | Nivel de los logs JSON (Entrega 4). Opcional; por defecto `INFO`. |
 
 `.env` está en `.gitignore` y no se sube al repositorio.
 
@@ -167,4 +170,80 @@ La evaluación vigente (quince preguntas y el prompt avanzado actual) está en
 `entrega3-15casos`. `entrega_3/resultados_ragas.json` conserva exclusivamente la corrida
 histórica de diez preguntas y el prompt anterior; no deben compararse directamente.
 La documentación técnica de la Parte A se encuentra en [`entrega_3/parte_a/README.md`](entrega_3/parte_a/README.md).
+
+## Entrega 4 — Agente con LangGraph, API REST, observabilidad y guardrails
+
+El agente de Portalia elige solo qué herramienta usar (políticas, pedido, stock, solicitud de
+cambio o devolución), recuerda la conversación por `thread_id` en SQLite y se expone como API
+FastAPI con logs JSON, `/metricas`, trazas en LangSmith y guardrails de input y output.
+La elegibilidad de un cambio o una devolución la decide el motor de reglas en Python, no el LLM.
+Detalle de diseño y resultados: [`entrega_4/informe.md`](entrega_4/informe.md) y
+[`entrega_4/ficha_tecnica.md`](entrega_4/ficha_tecnica.md).
+
+### Puesta en marcha (máquina limpia)
+
+```bash
+uv sync
+cp .env.example .env          # completar solo LLM_API_KEY; para trazas: LANGCHAIN_API_KEY y LANGCHAIN_TRACING_V2=true
+
+# La base Chroma no se versiona: hay que generarla (consume embeddings)
+uv run python entrega_2/etl_purga.py
+uv run python entrega_2/vector_db.py --cargar
+
+uv run uvicorn entrega_4.api:app --port 8000      # docs interactivas en http://localhost:8000/docs
+```
+
+### Probar los endpoints
+
+```bash
+curl localhost:8000/health
+
+curl -X POST localhost:8000/consultar -H "Content-Type: application/json"   -d '{"pregunta": "Donde esta mi pedido 48327?", "thread_id": "demo1"}'
+
+curl localhost:8000/estado/demo1      # historial del thread (404 si no existe)
+curl localhost:8000/metricas          # consultas, errores, latencia promedio y p95, herramientas, bloqueos
+```
+
+Si no se manda `thread_id`, la API genera uno y lo devuelve. En Windows, `curl` con tildes en
+el cuerpo puede fallar por la codificación de la consola; usá PowerShell con
+`Invoke-RestMethod` o el botón "Try it out" de `/docs`.
+
+Pedidos de la demo (backend mock en `entrega_4/datos/backend_portalia.json`; los días de
+entrega son relativos a hoy): `48327` despachado, `51204` entregado hace 3 días (cambio y
+devolución elegibles), `50718` entregado hace 15 días (devolución vencida, cambio elegible),
+`49880` entregado hace 45 días (nada elegible), `47990` con dos productos.
+
+### Demo de memoria con reinicio
+
+1. `POST /consultar` con `thread_id: "demo1"` ("Hola, soy Marcos, ¿dónde está el pedido 48327?").
+2. Cortar el servidor (Ctrl+C) y volver a levantarlo con el mismo comando.
+3. `GET /estado/demo1` devuelve el historial completo.
+4. `POST /consultar` con el mismo `thread_id` ("¿qué pedido era?"): el agente lo recuerda.
+
+Las métricas viven en memoria y se reinician con el servidor; la conversación no.
+
+### Tests y validación
+
+```bash
+# Sin red ni API key (LLM falso): guardrails, API, memoria y reinicio
+uv run python -m unittest entrega_4.security_tests entrega_4.test_agente_api -v
+
+# Matriz de 4 escenarios contra Gemini real (trayectoria de herramientas); exit 1 si falla
+uv run python entrega_4/validacion_agente.py
+```
+
+### Docker (alternativa opcional)
+
+Requiere el `.env` y la base Chroma ya cargada en `entrega_2/chroma_db` (se monta como volumen).
+Los archivos Docker viven en `entrega_4/`; el contexto de build es la raíz del repo, así que
+los comandos se corren desde ahí:
+
+```bash
+docker compose -f entrega_4/docker-compose.yaml up --build -d
+docker compose -f entrega_4/docker-compose.yaml ps     # el servicio debe quedar (healthy)
+curl localhost:8000/health
+```
+
+La memoria queda en el volumen `memoria`; `docker compose -f entrega_4/docker-compose.yaml down -v`
+la borra.
 

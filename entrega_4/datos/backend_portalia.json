@@ -1,0 +1,94 @@
+{
+  "_nota": "Backend de demostración (mock). 'entregado_hace_dias' es relativo a la fecha de referencia, así los casos de elegibilidad no caducan con el tiempo. Los datos personales son ficticios y están a propósito para demostrar el enmascarado de PII.",
+  "pedidos": {
+    "48327": {
+      "estado": "despachado",
+      "entregado_hace_dias": null,
+      "entrega_estimada_en_dias": 2,
+      "items": [
+        {"producto_id": "PROD-007", "nombre": "Notebook Portalia Air 14 (8 GB / 256 GB)", "variante": "gris"}
+      ],
+      "cliente": {"nombre": "Marcos Benítez", "email": "marcos.benitez@example.com", "telefono": "+54 9 11 5555-1234", "dni": "30123456"}
+    },
+    "51204": {
+      "estado": "entregado",
+      "entregado_hace_dias": 3,
+      "items": [
+        {"producto_id": "PROD-011", "nombre": "Auriculares Portalia Silencio", "variante": "negro"}
+      ],
+      "cliente": {"nombre": "Lucía Ferrero", "email": "lucia.ferrero@example.com", "telefono": "+54 9 351 555-9876", "dni": "35987654"}
+    },
+    "50718": {
+      "estado": "entregado",
+      "entregado_hace_dias": 15,
+      "items": [
+        {"producto_id": "PROD-002", "nombre": "Celular Portalia Nova 5G 128", "variante": "negro"}
+      ],
+      "cliente": {"nombre": "Joaquín Sosa", "email": "joaquin.sosa@example.com", "telefono": "+54 9 261 555-4411", "dni": "28456123"}
+    },
+    "49880": {
+      "estado": "entregado",
+      "entregado_hace_dias": 45,
+      "items": [
+        {"producto_id": "PROD-016", "nombre": "Monitor Portalia Rush 24", "variante": "negro"}
+      ],
+      "cliente": {"nombre": "Camila Rojas", "email": "camila.rojas@example.com", "telefono": "+54 9 341 555-7788", "dni": "37111222"}
+    },
+    "52010": {
+      "estado": "en_preparacion",
+      "entregado_hace_dias": null,
+      "entrega_estimada_en_dias": 5,
+      "items": [
+        {"producto_id": "PROD-019", "nombre": "Cargador Portalia USB-C 20 W", "variante": "blanco"}
+      ],
+      "cliente": {"nombre": "Tomás Aguirre", "email": "tomas.aguirre@example.com", "telefono": "+54 9 11 5555-0099", "dni": "40222333"}
+    },
+    "47990": {
+      "estado": "entregado",
+      "entregado_hace_dias": 8,
+      "items": [
+        {"producto_id": "PROD-004", "nombre": "Televisor Portalia Vista 43 LED", "variante": "negro"},
+        {"producto_id": "PROD-020", "nombre": "Cargador Portalia USB-C 65 W", "variante": "negro"}
+      ],
+      "cliente": {"nombre": "Valeria Domínguez", "email": "valeria.dominguez@example.com", "telefono": "+54 9 223 555-3020", "dni": "33444555"}
+    },
+    "53366": {
+      "estado": "entregado",
+      "entregado_hace_dias": 1,
+      "items": [
+        {"producto_id": "PROD-013", "nombre": "Auriculares Portalia Ritmo Sport", "variante": "azul"}
+      ],
+      "cliente": {"nombre": "Nicolás Paz", "email": "nicolas.paz@example.com", "telefono": "+54 9 11 5555-6070", "dni": "38999000"}
+    },
+    "46125": {
+      "estado": "cancelado",
+      "entregado_hace_dias": null,
+      "items": [
+        {"producto_id": "PROD-009", "nombre": "Notebook Portalia Play 15 Gamer (16 GB / 512 GB)", "variante": "negro"}
+      ],
+      "cliente": {"nombre": "Florencia Ibarra", "email": "florencia.ibarra@example.com", "telefono": "+54 9 381 555-2468", "dni": "36505050"}
+    }
+  },
+  "stock": {
+    "PROD-001": {"negro": 12, "azul": 4},
+    "PROD-002": {"negro": 7, "azul": 0, "blanco": 3},
+    "PROD-003": {"negro": 0, "azul": 0},
+    "PROD-004": {"negro": 5},
+    "PROD-005": {"negro": 3},
+    "PROD-006": {"negro": 0},
+    "PROD-007": {"gris": 6, "plata": 2},
+    "PROD-008": {"gris": 4, "plata": 0},
+    "PROD-009": {"negro": 3},
+    "PROD-010": {"negro": 0},
+    "PROD-011": {"negro": 9, "blanco": 5, "azul": 0},
+    "PROD-012": {"negro": 8, "blanco": 2},
+    "PROD-013": {"negro": 10, "azul": 6, "rojo": 1},
+    "PROD-014": {"negro": 0},
+    "PROD-015": {"negro": 11},
+    "PROD-016": {"negro": 6},
+    "PROD-017": {"negro": 2},
+    "PROD-018": {"negro": 0},
+    "PROD-019": {"blanco": 20, "negro": 14},
+    "PROD-020": {"negro": 9, "blanco": 0}
+  }
+}

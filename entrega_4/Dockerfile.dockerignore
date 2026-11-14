@@ -1,0 +1,16 @@
+# BuildKit lee este archivo (<Dockerfile>.dockerignore) en vez de un .dockerignore en la raíz.
+# Los patrones con "**/" valen en cualquier carpeta del contexto (la raíz del repo).
+.env
+.env.*
+!.env.example
+.git
+.venv
+**/__pycache__
+**/*.pyc
+**/*.sqlite3
+**/chroma_db
+entrega_2/indices
+entrega_3/resultados_ragas
+CLAUDE.md
+entrega_4/PLAN_ENTREGA_4.md
+entrega_4/ANALISIS_ENTREGA_4.md
