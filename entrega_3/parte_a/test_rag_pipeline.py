@@ -14,12 +14,18 @@ import validacion_rag as validacion
 
 
 class ErroresLocalesTest(unittest.TestCase):
+    """Comprueba validaciones y errores sin abrir Chroma ni conectarse a Gemini."""
+
     def test_dependencia_ausente(self):
+        # Un paquete faltante debe convertirse en un error de configuracion claro
+        # que indique como preparar el entorno.
         with patch.object(rag.importlib, "import_module", side_effect=ModuleNotFoundError):
             with self.assertRaisesRegex(rag.ErrorRAG, "dependencia langchain_core"):
                 rag.importar_dependencia("langchain_core")
 
     def test_base_ausente_no_crea_directorio_ni_cliente(self):
+        # Si falta la persistencia original, el pipeline falla sin crear una
+        # carpeta vacia ni intentar abrir dependencias de Chroma.
         with tempfile.TemporaryDirectory() as temporal:
             ruta = Path(temporal) / "base_ausente"
             anterior = SimpleNamespace(DIRECTORIO_CHROMA=ruta)
@@ -31,6 +37,8 @@ class ErroresLocalesTest(unittest.TestCase):
             self.assertFalse(ruta.exists())
 
     def test_pregunta_y_k_invalidos(self):
+        # Rechaza preguntas vacias o de tipo incorrecto y valores k que no sean
+        # enteros positivos (incluido bool, que en Python es subclase de int).
         for pregunta in ("", "  ", None, 123):
             with self.subTest(pregunta=pregunta):
                 with self.assertRaisesRegex(rag.ErrorRAG, "texto no vacío"):
@@ -42,8 +50,12 @@ class ErroresLocalesTest(unittest.TestCase):
 
 
 class ChromaYLcelTest(unittest.TestCase):
+    """Pruebas de integracion local con una coleccion Chroma temporal y dobles."""
+
     @classmethod
     def setUpClass(cls):
+        # Configuracion ficticia para que las validaciones del espacio vectorial
+        # coincidan con el proyecto, sin leer ni imprimir credenciales reales.
         # Configuración de prueba explícita; no son credenciales ni una base original.
         cls.entorno = patch.dict(os.environ, {
             "EMBEDDING_MODEL": "gemini-embedding-001", "EMBEDDING_DIMENSION": "768",
@@ -56,6 +68,8 @@ class ChromaYLcelTest(unittest.TestCase):
         cls.chromadb = rag.importar_dependencia("chromadb")
 
     def setUp(self):
+        # Cada test recibe una base temporal aislada; nunca usa la persistencia
+        # real de Entrega 2.
         self.temporal = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporal.cleanup)
         self.ruta = Path(self.temporal.name)
@@ -69,6 +83,8 @@ class ChromaYLcelTest(unittest.TestCase):
         from chromadb.api.types import EmbeddingFunction
 
         class EmbeddingsFixture(EmbeddingFunction):
+            # La coleccion de prueba ya recibe vectores sinteticos. Si algun
+            # camino intenta llamar al proveedor para generarlos, el test falla.
             def __init__(self):
                 pass
 
@@ -91,6 +107,8 @@ class ChromaYLcelTest(unittest.TestCase):
         self.vector_lejano = [0.0, 1.0] + [0.0] * 766
 
     def crear_fixture(self, documentos=True):
+        # Los vectores hacen distinguible el documento lejano; los metadatos
+        # permiten comprobar el filtro de vigencia sin depender de Gemini.
         coleccion = self.cliente.create_collection(
             self.anterior.NOMBRE_COLECCION,
             metadata={"hnsw:space": "cosine"}, embedding_function=self.ef,
@@ -109,6 +127,8 @@ class ChromaYLcelTest(unittest.TestCase):
         return coleccion
 
     def test_abre_coleccion_existente_sin_credenciales_y_sin_cambiar_documentos(self):
+        # A.1 debe abrir la coleccion persistida tal cual, sin pedir una clave,
+        # regenerar embeddings ni alterar IDs, textos, metadatos o vectores.
         original = self.crear_fixture()
         antes = original.get(include=["documents", "metadatas", "embeddings"])
         with patch.dict(os.environ, {}, clear=True):
@@ -121,35 +141,45 @@ class ChromaYLcelTest(unittest.TestCase):
         self.assertTrue((antes["embeddings"] == despues["embeddings"]).all())
 
     def test_coleccion_inexistente_no_se_crea(self):
+        # Comprueba que se busca la coleccion esperada y que no se crea otra
+        # automaticamente cuando falta.
         self.cliente.create_collection("otra_coleccion", embedding_function=None)
         with self.assertRaisesRegex(rag.ErrorRAG, "No se pudo abrir la colección existente"):
             rag.abrir_coleccion_existente()
         self.assertEqual([c.name for c in self.cliente.list_collections()], ["otra_coleccion"])
 
     def test_coleccion_vacia_se_informa(self):
+        # Una coleccion existente pero vacia tampoco es una fuente utilizable.
         self.crear_fixture(documentos=False)
         with self.assertRaisesRegex(rag.ErrorRAG, "está vacía"):
             rag.abrir_coleccion_existente()
 
     def test_modelo_incompatible_aunque_dimension_igual(self):
+        # Dos modelos pueden producir espacios vectoriales distintos aunque
+        # tengan igual cantidad de dimensiones; se debe rechazar esa mezcla.
         self.crear_fixture()
         with patch.object(self.anterior, "MODELO_EMBEDDINGS", "otro-modelo"):
             with self.assertRaisesRegex(rag.ErrorRAG, "no coinciden"):
                 rag.abrir_coleccion_existente()
 
     def test_dimension_configurada_incompatible(self):
+        # La dimension configurada debe coincidir con la registrada en la base.
         self.crear_fixture()
         with patch.object(self.anterior, "DIMENSION_EMBEDDINGS", 1024):
             with self.assertRaisesRegex(rag.ErrorRAG, "no coinciden"):
                 rag.abrir_coleccion_existente()
 
     def test_vector_almacenado_incompatible(self):
+        # Ademas de la configuracion, se inspecciona el vector persistido para
+        # detectar registros guardados con una dimension distinta.
         coleccion = self.crear_fixture(documentos=False)
         coleccion.add(ids=["MAL"], documents=["Prueba"], embeddings=[[1.0, 0.0]])
         with self.assertRaisesRegex(rag.ErrorRAG, "vector almacenado"):
             rag.abrir_coleccion_existente()
 
     def test_credencial_ausente_se_informa(self):
+        # Tanto el retriever (embeddings de consulta) como el LLM necesitan la
+        # credencial y deben explicar su ausencia.
         coleccion = self.crear_fixture()
         app = rag.importar_dependencia("entrega_1.parte_c.app")
         with patch.dict(os.environ, {}, clear=True), patch("dotenv.load_dotenv", return_value=False):
@@ -162,6 +192,8 @@ class ChromaYLcelTest(unittest.TestCase):
 
     def test_adaptador_gemini_reutiliza_modelo_y_separa_instrucciones(self):
         # Doble del SDK: valida el request sin generar una respuesta real ni usar keys.
+        # Verifica que LCEL envie al SDK el modelo, la pregunta y las reglas por
+        # separado, y que la temperatura se mantenga determinista.
         from langchain_core.prompts import ChatPromptTemplate
         cliente = Mock()
         cliente.models.generate_content.return_value = SimpleNamespace(text="Texto del doble SDK")
@@ -180,6 +212,8 @@ class ChromaYLcelTest(unittest.TestCase):
         self.assertEqual(kwargs["config"].temperature, 0)
 
     def test_retriever_real_filtra_vigencia_umbral_y_respeta_k(self):
+        # Con una pregunta vectorizada de prueba, solo debe volver el documento
+        # activo que esta bajo el umbral; tambien se comprueba k y el filtro where.
         coleccion = self.crear_fixture()
         import numpy as np
         with patch.object(self.anterior, "crear_cliente", return_value=object()):
@@ -196,6 +230,8 @@ class ChromaYLcelTest(unittest.TestCase):
                     self.assertEqual(query.call_args.kwargs["where"], {"activo": {"$eq": True}})
 
     def test_ventana_predeterminada_incluye_politicas_complementarias_relevantes(self):
+        # Compara k=3 con la ventana ampliada por defecto para asegurar que entren
+        # fuentes complementarias relevantes sin incluir inactivos o lejanos.
         coleccion = self.crear_fixture()
         ids = [f"COMPLEMENTARIA-{i}" for i in range(1, 5)]
         coleccion.add(
@@ -216,6 +252,8 @@ class ChromaYLcelTest(unittest.TestCase):
         self.assertNotIn("LEJANO", [d.id for d in ampliada])
 
     def test_chain_lcel_una_recuperacion_y_fuentes_del_prompt(self):
+        # Comprueba el flujo LCEL de punta a punta con dobles: limpia la pregunta,
+        # recupera una sola vez y pasa al prompt el mismo contexto que devuelve.
         documentos = [self.Document(id="FUENTE", page_content="Texto de la fuente {literal}.", metadata={"activo": True})]
         recuperar = Mock(return_value=documentos)
         prompts = []
@@ -235,6 +273,8 @@ class ChromaYLcelTest(unittest.TestCase):
             "id": "FUENTE", "texto": documentos[0].page_content, "metadatos": documentos[0].metadata,
         })
         self.assertIn(resultado["contexto"], prompts[0].to_messages()[1].content)
+        # Estas comprobaciones aseguran que el mensaje de sistema conserva las
+        # reglas de grounding, correccion de premisas e instrucciones no confiables.
         reglas = prompts[0].to_messages()[0].content
         self.assertIn(rag.FRASE_ESCAPE, reglas)
         self.assertIn("No inventes precios", reglas)
@@ -243,6 +283,8 @@ class ChromaYLcelTest(unittest.TestCase):
         self.assertIn("evaluaciones documentadas", reglas)
 
     def test_contexto_vacio_usa_escape_sin_llamar_llm(self):
+        # Sin fuentes no se debe generar una respuesta de memoria: se devuelve
+        # exactamente la frase de escape y se omite la llamada al LLM.
         generar = Mock(side_effect=AssertionError("No debe llamarse al LLM sin contexto"))
         chain = rag.crear_chain(self.lcel.RunnableLambda(lambda _: []), self.lcel.RunnableLambda(generar))
         resultado = chain.invoke("Consulta sin contexto")
@@ -251,6 +293,8 @@ class ChromaYLcelTest(unittest.TestCase):
         generar.assert_not_called()
 
     def test_batch_no_mezcla_fuentes_entre_preguntas(self):
+        # En procesamiento por lotes, cada respuesta debe conservar solo los
+        # documentos recuperados para su propia pregunta.
         chain = rag.crear_chain(
             self.lcel.RunnableLambda(lambda q: [self.Document(id=q, page_content=q)]),
             self.lcel.RunnableLambda(lambda prompt: "Doble de prueba"),
@@ -261,6 +305,8 @@ class ChromaYLcelTest(unittest.TestCase):
             self.assertEqual(json.loads(resultado["contexto"])[0]["texto"], resultado["pregunta"])
 
     def test_imports_no_colisionan_con_modulos_homonimos(self):
+        # Evita que modulos genericos ya cargados (app, schemas, etc.) suplanten
+        # los paquetes de Entrega 1 y 2 al importarlos desde el RAG.
         app = rag.importar_dependencia("entrega_1.parte_c.app")
         falsos = {nombre: SimpleNamespace() for nombre in ("app", "schemas", "vector_db", "embeddings_gemini")}
         with patch.dict(rag.sys.modules, falsos):
@@ -271,6 +317,8 @@ class ChromaYLcelTest(unittest.TestCase):
                     self.assertIsInstance(rag.crear_llm(), self.lcel.RunnableLambda)
 
     def test_configuracion_y_error_apuntan_a_raiz_desde_otro_directorio(self):
+        # La ruta de .env debe derivarse del proyecto y no depender del cwd
+        # desde el cual se ejecute el script.
         app = rag.importar_dependencia("entrega_1.parte_c.app")
         self.assertEqual(app.RAIZ, rag.RAIZ)
         directorio_anterior = Path.cwd()
@@ -292,10 +340,14 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # Reutiliza la matriz de casos y el tipo Document, pero simula fuentes
+        # y respuestas para probar la evaluacion sin hacer llamadas externas.
         cls.casos = {c["caso"]: c for c in validacion.crear_casos()}
         cls.Document = rag.importar_dependencia("langchain_core.documents").Document
 
     def resultado(self, nombre, respuesta="Respuesta del doble unitario; no es Gemini."):
+        # Construye el resultado minimo que consume la evaluacion: respuesta,
+        # documentos recuperados y el contexto serializado de esas fuentes.
         caso = self.casos[nombre]
         docs = [] if not caso["documento_esperado"] else [self.Document(
             id=caso["documento_esperado"], page_content=caso["referencia_corpus"],
@@ -304,6 +356,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         return {"respuesta": respuesta, "documentos": docs, "contexto": rag.formatear_documentos(docs)}
 
     def test_cuatro_casos_referenciados_al_corpus_real(self):
+        # Los casos funcionales apuntan a documentos realmente existentes y
+        # activos; tambien verifica las premisas clave de sus escenarios.
         self.assertEqual(set(self.casos), {"factual", "fuera_dominio", "complacencia", "sinonimos"})
         ruta = rag.RAIZ / "entrega_2" / "base_conocimiento_limpia.json"
         corpus = {d["id"]: d for d in json.loads(ruta.read_text(encoding="utf-8"))}
@@ -318,6 +372,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         self.assertIn("celu", self.casos["sinonimos"]["pregunta"])
 
     def test_factual_exige_fuente_respuesta_y_revision_semantica(self):
+        # Una respuesta con fuente no se marca aprobada automaticamente: requiere
+        # revision semantica humana y falla si falta una respuesta util.
         caso = self.casos["factual"]
         resultado = self.resultado("factual")
         self.assertEqual(validacion.evaluar_caso(caso, resultado)["estado"], "pendiente")
@@ -328,6 +384,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
                 self.assertEqual(validacion.evaluar_caso(caso, self.resultado("factual", respuesta))["estado"], "fallido")
 
     def test_fuera_de_dominio_exige_escape_exacto(self):
+        # Para una consulta sin respaldo, solo se aprueba la frase de escape
+        # exacta; puntuacion extra, espacios o una respuesta inventada fallan.
         caso = self.casos["fuera_dominio"]
         for respuesta, estado in (
             (rag.FRASE_ESCAPE, "aprobado"),
@@ -339,6 +397,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
                 self.assertEqual(validacion.evaluar_caso(caso, self.resultado("fuera_dominio", respuesta))["estado"], estado)
 
     def test_complacencia_no_aprueba_por_palabras_o_fuente_correcta(self):
+        # Tener el documento correcto o repetir una cifra no basta: la respuesta
+        # debe contradecir la premisa falsa y dar la condicion documentada.
         caso = self.casos["complacencia"]
         falso = self.resultado("complacencia", "Sí, tenés 90 días sin condiciones; también se mencionan 10 días.")
         self.assertEqual(validacion.evaluar_caso(caso, falso)["estado"], "pendiente")
@@ -347,6 +407,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         self.assertEqual(validacion.evaluar_caso(caso, correcto, revision=True)["estado"], "aprobado")
 
     def test_sinonimos_exige_politica_de_garantia(self):
+        # La consulta informal debe vincularse con la fuente de garantia, no con
+        # cualquier documento que simplemente tenga una respuesta simulada.
         caso = self.casos["sinonimos"]
         correcto = self.resultado("sinonimos")
         self.assertEqual(validacion.evaluar_caso(caso, correcto, revision=True)["estado"], "aprobado")
@@ -354,6 +416,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         self.assertEqual(validacion.evaluar_caso(caso, incorrecto, revision=True)["estado"], "fallido")
 
     def test_fuentes_preservan_texto_completo_id_y_metadatos_sin_agregar_campos(self):
+        # A.4 expone el ID, el texto completo y los metadatos reales de cada
+        # fuente, sin inventar campos adicionales.
         resultado = self.resultado("factual")
         documento = resultado["documentos"][0]
         documento.metadata = {"categoria": "devoluciones", "activo": True, "tags_regionales": "devolución, plazo, 10 días"}
@@ -364,6 +428,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         self.assertEqual(resultado["documentos"][0].metadata, fuentes[0]["metadatos"])
 
     def test_fuentes_distintas_del_contexto_fallan_a3_y_a4(self):
+        # Detecta si se alteran las fuentes despues de generar la respuesta:
+        # la trazabilidad debe coincidir con el contexto que vio el LLM.
         resultado = self.resultado("factual")
         resultado["documentos"][0].metadata["categoria"] = "alterada después del prompt"
         with self.assertRaisesRegex(rag.ErrorRAG, "no coinciden"):
@@ -373,6 +439,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         self.assertEqual(validacion.crear_trazas([fila])[0]["estado"], "fallido")
 
     def test_a4_reutiliza_dos_resultados_sin_segunda_recuperacion(self):
+        # La recuperacion se ejecuta una vez por caso; las trazas reutilizan sus
+        # resultados y el caso sin contexto no provoca una generacion LLM.
         from langchain_core.runnables import RunnableLambda
         por_pregunta = {c["pregunta"]: self.resultado(nombre) for nombre, c in self.casos.items()}
         recuperar = Mock(side_effect=lambda pregunta: por_pregunta[pregunta]["documentos"])
@@ -398,6 +466,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         self.assertEqual(matriz[0]["estado"], "pendiente")
 
     def test_error_de_ejecucion_es_pendiente_y_no_expone_el_mensaje(self):
+        # Un fallo de ejecucion no se interpreta como aprobado ni se copia su
+        # posible contenido sensible al informe de validacion.
         chain = Mock()
         chain.invoke.side_effect = RuntimeError("Contenido sensible del proveedor")
         fila = validacion.ejecutar_caso(chain, self.casos["factual"])
@@ -407,6 +477,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         self.assertEqual(validacion.crear_trazas([fila])[0]["estado"], "pendiente")
 
     def test_revision_humana_no_repite_consulta(self):
+        # La revision solo juzga el resultado existente; no vuelve a invocar el
+        # pipeline ni genera una segunda respuesta.
         from contextlib import redirect_stdout
         from io import StringIO
         chain = Mock()
@@ -417,6 +489,8 @@ class ResilienciaYTrazabilidadTest(unittest.TestCase):
         chain.invoke.assert_called_once_with(self.casos["factual"]["pregunta"])
 
     def test_recursos_ausentes_no_llaman_pipeline_y_dejan_todo_pendiente(self):
+        # Sin Chroma o credenciales, la matriz y las trazas quedan pendientes y
+        # la validacion evita intentar ejecutar el pipeline.
         from contextlib import redirect_stdout
         from io import StringIO
         faltantes = ["persistencia Chroma", "LLM_API_KEY"]

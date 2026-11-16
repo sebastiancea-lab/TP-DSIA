@@ -12,7 +12,8 @@ from typing import Optional
 
 from entrega_4.config import MAX_LARGO_INPUT
 
-# Tipos de bloqueo (claves de /metricas y de motivo_bloqueo).
+# Identificadores estables que la API puede usar en métricas y logs sin guardar
+# el contenido original del mensaje.
 INPUT_INJECTION = "input_injection"
 INPUT_LONGITUD = "input_longitud"
 OUTPUT_PII = "output_pii"
@@ -37,18 +38,23 @@ class Bloqueo:
 
 def _normalizar(texto: str) -> str:
     """Minúsculas y sin tildes, para que 'ignorá' e 'ignora' matcheen igual."""
+    # La normalización hace que los patrones no dependan de mayúsculas ni tildes.
     descompuesto = unicodedata.normalize("NFKD", texto.lower())
     return "".join(c for c in descompuesto if not unicodedata.combining(c))
 
 
 def validar_longitud(texto: str, maximo: int = MAX_LARGO_INPUT) -> Optional[Bloqueo]:
     """Bloquea mensajes vacíos o más largos que ``maximo`` caracteres."""
+    # Se rechazan entradas vacías o muy largas antes de pasarlas al agente,
+    # limitando errores de uso y el volumen de contexto.
     if not isinstance(texto, str) or not texto.strip() or len(texto) > maximo:
         return Bloqueo(INPUT_LONGITUD, MENSAJES_BLOQUEO[INPUT_LONGITUD])
     return None
 
 
-# Patrones sobre texto normalizado (sin tildes). Español e inglés.
+# Filtro heurístico de frases explícitas en español e inglés que intentan
+# reemplazar reglas, cambiar el rol o revelar instrucciones internas. No es un
+# clasificador general de ataques; por eso también se mantienen reglas en el prompt.
 _PATRONES_INJECTION = [re.compile(p) for p in (
     r"\b(ignora|ignore|olvida|olvidate|omiti|saltea|descarta|desestima)\w*\s+(\w+\s+){0,3}"
     r"(instrucciones|reglas|indicaciones|directivas|restricciones|prompt)",
@@ -83,6 +89,7 @@ _PATRONES_INJECTION = [re.compile(p) for p in (
 
 def detectar_prompt_injection(texto: str) -> Optional[Bloqueo]:
     """Bloquea intentos evidentes de cambiar las reglas o de extraer el prompt."""
+    # Se normaliza una sola vez y se devuelve el primer patrón coincidente.
     normalizado = _normalizar(texto or "")
     for patron in _PATRONES_INJECTION:
         if patron.search(normalizado):
@@ -92,10 +99,13 @@ def detectar_prompt_injection(texto: str) -> Optional[Bloqueo]:
 
 def validar_input(texto: str) -> Optional[Bloqueo]:
     """Corre los validators de input en orden; devuelve el primer bloqueo."""
+    # Primero se limita la longitud; si pasa, se revisan patrones de injection.
     return validar_longitud(texto) or detectar_prompt_injection(texto)
 
 
 # --- Output: enmascarado de datos personales -------------------------------
+# Patrones de posibles datos personales. Los reemplazos más específicos se
+# aplican primero para evitar que una tarjeta quede parcialmente como teléfono o DNI.
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _TARJETA = re.compile(r"(?<![\w.])(?:\d[ -]?){13,16}(?!\w)")
 _DNI = re.compile(
@@ -112,6 +122,8 @@ _MIN_DIGITOS_TELEFONO = 10
 
 def _reemplazo_telefono(coincidencia: re.Match) -> str:
     """Enmascara solo con '+' o con 10+ dígitos: '2026 5120' o '5G 128 2024' no son teléfonos."""
+    # Algunos números de producto o de contexto pueden parecer teléfonos; se
+    # exige un prefijo internacional o suficientes dígitos antes de ocultarlos.
     texto = coincidencia.group()
     digitos = sum(c.isdigit() for c in texto)
     if texto.startswith("+") or digitos >= _MIN_DIGITOS_TELEFONO:
@@ -121,6 +133,7 @@ def _reemplazo_telefono(coincidencia: re.Match) -> str:
 
 def _reemplazo_dni(coincidencia: re.Match) -> str:
     """Un monto ('$ 1299999', '12.999.999 pesos') no es un DNI. Sin contexto, se enmascara."""
+    # Se conservan coincidencias que parecen montos para no ocultar precios.
     if coincidencia.group("signo") or coincidencia.group("pesos"):
         return coincidencia.group()
     return "[DNI OCULTO]"
@@ -131,6 +144,8 @@ def _luhn_valido(candidato: str) -> bool:
     digitos = [int(c) for c in candidato if c.isdigit()]
     if not 13 <= len(digitos) <= 16:
         return False
+    # El checksum de Luhn ayuda a distinguir números de tarjeta plausibles de
+    # otras secuencias largas de dígitos; no verifica que la tarjeta exista.
     suma = 0
     for i, d in enumerate(reversed(digitos)):
         if i % 2:
@@ -140,10 +155,12 @@ def _luhn_valido(candidato: str) -> bool:
 
 
 def _reemplazo_tarjeta(coincidencia: re.Match) -> str:
+    # Solo se ocultan candidatos que además pasan el checksum de Luhn.
     return "[TARJETA OCULTA]" if _luhn_valido(coincidencia.group()) else coincidencia.group()
 
 
-# El orden importa: tarjetas antes que teléfonos y DNI, que son subcadenas de dígitos.
+# El orden importa: tarjetas antes que teléfonos y DNI, que pueden coincidir con
+# partes de la misma secuencia numérica.
 _REGLAS_PII = (
     (_EMAIL, "[EMAIL OCULTO]", "email"),
     (_TARJETA, _reemplazo_tarjeta, "tarjeta"),
@@ -155,6 +172,8 @@ _REGLAS_PII = (
 def enmascarar_pii(texto: str) -> tuple[str, list[str]]:
     """Devuelve ``(texto_enmascarado, tipos_detectados)``. Sin PII, el texto queda intacto."""
     tipos: list[str] = []
+    # Cada pasada opera sobre el texto ya enmascarado; así no se informa un tipo
+    # si la coincidencia candidata se conservó como monto o número no sensible.
     for patron, reemplazo, tipo in _REGLAS_PII:
         antes = texto
         texto = patron.sub(reemplazo, texto)

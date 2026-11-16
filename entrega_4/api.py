@@ -46,11 +46,15 @@ class RetrieverNoDisponible:
         self.motivo = motivo
 
     def invoke(self, consulta: str, *args, **kwargs):
+        # Mantiene explícito el fallo de recuperación si una herramienta intenta
+        # buscar políticas mientras Chroma no está disponible.
         raise ErrorRAG(self.motivo)
 
 
 def texto_de(mensaje) -> str:
     """Texto plano de un mensaje (Gemini puede devolver el contenido en bloques)."""
+    # La API devuelve texto al cliente aunque el SDK represente internamente
+    # el contenido como bloques.
     return (mensaje.text or "").strip()
 
 
@@ -62,6 +66,8 @@ def crear_app(
 
     def cerrar_turno_fallido(grafo, conf, texto: str) -> None:
         """Deja la memoria coherente tras un turno cortado: sin humano huérfano ni tool_calls abiertos."""
+        # Si una invocacion termina por límite o error, guarda una respuesta de
+        # cierre para que el siguiente turno no herede llamadas de herramienta pendientes.
         mensajes = grafo.get_state(conf).values.get("messages", [])
         grafo.update_state(
             conf, {"messages": mensajes_de_cierre(mensajes, texto)}, as_node="agente",
@@ -69,6 +75,8 @@ def crear_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # Los recursos duraderos y el grafo se crean al arrancar el servidor,
+        # y se comparten entre las solicitudes de esta instancia.
         obtener_logger()
         saver = crear_saver(ruta_db or DB_PATH)
         coleccion_ok = True
@@ -77,6 +85,8 @@ def crear_app(
             try:
                 retriever_vivo = crear_retriever_politicas()
             except ErrorRAG as exc:
+                # La API puede iniciar en modo degradado; el endpoint de salud lo
+                # informa y las búsquedas fallan explícitamente al ser invocadas.
                 coleccion_ok = False
                 retriever_vivo = RetrieverNoDisponible(str(exc))
                 log_evento("chroma_no_disponible", logging.ERROR, motivo=str(exc))
@@ -95,6 +105,8 @@ def crear_app(
 
     @app.get("/health", response_model=HealthResponse)
     def health(request: Request) -> HealthResponse:
+        # Este estado refleja si la colección de políticas está disponible;
+        # "degradado" no impide que la API permanezca levantada.
         ok = request.app.state.coleccion_ok
         return HealthResponse(
             estado="ok" if ok else "degradado", modelo=LLM_MODEL, coleccion_chroma=ok,
@@ -104,6 +116,8 @@ def crear_app(
     def consultar(pedido: ConsultaRequest, request: Request) -> ConsultaResponse:
         estado = request.app.state
         inicio = time.perf_counter()
+        # Reutilizar el ID continúa la conversación persistida; si no llega uno,
+        # se crea un hilo nuevo y el ID se devuelve al cliente.
         thread_id = pedido.thread_id or uuid.uuid4().hex
 
         def latencia() -> float:
@@ -112,6 +126,7 @@ def crear_app(
         # 1) Guardrail de input: si bloquea, el grafo ni se invoca.
         bloqueo = validar_input(pedido.pregunta)
         if bloqueo:
+            # Un rechazo de input no llega al agente ni consume una llamada al LLM.
             estado.metricas.registrar_bloqueo(bloqueo.tipo)
             estado.metricas.registrar_consulta(latencia())
             log_evento("bloqueo_input", logging.WARNING, thread_id=thread_id,
@@ -126,6 +141,8 @@ def crear_app(
         try:
             resultado = estado.grafo.invoke(entrada_turno(pedido.pregunta.strip()), conf)
         except GraphRecursionError:
+            # El nodo de cierre deja el historial consistente antes de devolver
+            # el mensaje que informa que se alcanzó el límite de iteraciones.
             estado.metricas.registrar_consulta(latencia(), error=True)
             log_evento("recursion_limit", logging.ERROR, thread_id=thread_id, latencia_ms=latencia())
             cerrar_turno_fallido(estado.grafo, conf, MENSAJE_CORTE_ITERACIONES)
@@ -147,12 +164,15 @@ def crear_app(
                        tipo=type(exc).__name__)
             raise HTTPException(500, f"Falla en el almacenamiento ({type(exc).__name__}).") from exc
 
+        # Se separan los mensajes creados en este turno del historial completo
+        # persistido para informar herramientas, tokens y respuesta recientes.
         nuevos = mensajes_del_turno(resultado["messages"])
         herramientas = herramientas_del_turno(nuevos)
         respuesta_ia = next((m for m in reversed(nuevos) if isinstance(m, AIMessage)), None)
         respuesta = texto_de(respuesta_ia) if respuesta_ia else ""
         vacia = not respuesta
         if vacia:
+            # Una salida vacía no se entrega al cliente como éxito sin contenido.
             respuesta = FRASE_ESCAPE
             log_evento("respuesta_vacia", logging.WARNING, thread_id=thread_id)
 
@@ -162,6 +182,8 @@ def crear_app(
             estado.metricas.registrar_bloqueo(OUTPUT_PII)
             log_evento("pii_enmascarada", logging.WARNING, thread_id=thread_id, tipos=tipos_pii)
         if tipos_pii or vacia:
+            # También se reemplaza el mensaje en memoria: /estado no debe volver
+            # a exponer PII que ya se ocultó en la respuesta HTTP.
             estado.grafo.update_state(
                 conf,
                 {"messages": [AIMessage(
@@ -185,6 +207,8 @@ def crear_app(
     def estado_thread(
         request: Request, thread_id: str = RutaParam(pattern=PATRON_THREAD_ID),
     ) -> EstadoResponse:
+        # Devuelve solo mensajes visibles para el usuario; se omiten tool calls
+        # y respuestas internas de herramientas.
         instantanea = request.app.state.grafo.get_state({"configurable": {"thread_id": thread_id}})
         mensajes = (instantanea.values or {}).get("messages")
         if not mensajes:
@@ -201,9 +225,12 @@ def crear_app(
 
     @app.get("/metricas", response_model=MetricasResponse)
     def metricas(request: Request) -> MetricasResponse:
+        # Expone el snapshot agregado, no los mensajes ni el contenido de cada consulta.
         return MetricasResponse(**request.app.state.metricas.snapshot())
 
     return app
 
 
+# Uvicorn importa esta instancia como entrega_4.api:app; las pruebas pueden
+# crear otra con dependencias temporales mediante crear_app().
 app = crear_app()

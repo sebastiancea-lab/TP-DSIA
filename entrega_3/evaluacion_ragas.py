@@ -25,12 +25,17 @@ from entrega_3.parte_a import rag_pipeline as rag_a
 QUI = Path(__file__).resolve().parent
 DIR_PARCIALES = QUI / "resultados_ragas"
 K_BASICO = 3  # misma configuración con la que se documentó la falla de B.1
+# RAGAS puntua la fidelidad, relevancia de la respuesta y calidad/cobertura del
+# contexto recuperado. Los casos de escape se evalúan aparte, sin estas métricas.
 METRICAS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall")
+# La distribución mantiene casos directos, complejos, de abstención y lenguaje informal.
 DISTRIBUCION = {"simple": 5, "compleja": 5, "escape": 2, "informal": 3}
 URL_GEMINI_OPENAI = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 # C.1 — Golden dataset. Las respuestas esperadas salen del texto de
 # entrega_2/base_conocimiento_limpia.json; en las de escape el esperado es la frase de escape.
+# Las referencias identifican qué documentos del corpus deberían aportar
+# evidencia; son parte del caso de evaluación, no contenido generado por el modelo.
 GOLDEN_DATASET = [
     {
         "id": "S1", "tipo": "simple",
@@ -126,6 +131,8 @@ GOLDEN_DATASET = [
 
 
 def validar_dataset(dataset: list[dict]) -> None:
+    # Falla temprano si cambia la cantidad por categoría o si se repite un ID:
+    # ambas cosas harían ambiguas las métricas y los archivos parciales.
     conteo = {t: 0 for t in DISTRIBUCION}
     for caso in dataset:
         conteo[caso["tipo"]] = conteo.get(caso["tipo"], 0) + 1
@@ -137,10 +144,13 @@ def validar_dataset(dataset: list[dict]) -> None:
 
 
 def es_escape(caso: dict) -> bool:
+    # Los casos de escape prueban abstención, no calidad de una respuesta factual.
     return caso["tipo"] == "escape"
 
 
 def clasificar_abstencion(respuesta: str) -> dict[str, bool]:
+    # Se distingue la frase exacta de una respuesta que solo la contiene como
+    # parte de una contestación más larga, para detectar descargos parciales.
     exacta = respuesta == rag_a.FRASE_ESCAPE
     parcial = not exacta and rag_a.FRASE_ESCAPE in respuesta
     return {"se_abstuvo": exacta, "coincidencia_parcial_escape": parcial}
@@ -150,6 +160,8 @@ def huella_base(ruta: Path) -> str | None:
     """Fingerprint de documentos, metadatos y configuración, sin abrir Chroma."""
     if not ruta.is_file():
         return None
+    # La base se abre en modo SQLite de solo lectura y sus tablas relevantes se
+    # hashean para identificar exactamente qué persistencia se evaluó.
     conexion = sqlite3.connect(ruta.resolve().as_uri() + "?mode=ro", uri=True)
     huella = hashlib.sha256()
     try:
@@ -174,6 +186,8 @@ def crear_manifiesto(nombres: list[str]) -> dict:
         "entrega_1/parte_c/schemas.py", "entrega_2/embeddings_gemini.py",
         "entrega_2/vector_db.py", "entrega_2/base_conocimiento_limpia.json", "uv.lock",
     )
+    # El entorno del proceso tiene prioridad sobre .env, como en la configuración
+    # normal de Python; solo se almacenan parámetros no secretos del experimento.
     configuracion = {**dotenv_values(RAIZ / ".env"), **os.environ}
     paquetes = {}
     for nombre in ("ragas", "chromadb", "google-genai", "langchain-core", "langchain-text-splitters"):
@@ -181,6 +195,8 @@ def crear_manifiesto(nombres: list[str]) -> dict:
             paquetes[nombre] = importlib.metadata.version(nombre)
         except importlib.metadata.PackageNotFoundError:
             paquetes[nombre] = None
+    # Cada pipeline usa una persistencia distinta; sus huellas permiten detectar
+    # cambios en los documentos indexados al intentar reanudar.
     rutas_bases = {
         "basico": RAIZ / "entrega_2/chroma_db/chroma.sqlite3",
         "avanzado": QUI / "parte_b/chroma_db/chroma.sqlite3",
@@ -203,11 +219,15 @@ def crear_manifiesto(nombres: list[str]) -> dict:
 
 
 def preparar_experimento(nombre: str, retomar: bool, manifiesto: dict) -> Path:
+    # Se restringe el identificador para usarlo con seguridad como nombre de
+    # directorio y se evita sobrescribir corridas anteriores.
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,79}", nombre):
         raise ValueError("El experimento debe tener entre 1 y 80 letras, números, guiones o guiones bajos.")
     directorio = DIR_PARCIALES / nombre
     ruta_manifiesto = directorio / "manifiesto.json"
     if retomar:
+        # Solo se reanuda si coinciden datos, código, configuración y bases, y
+        # si todavía no existe un resultado final.
         if not ruta_manifiesto.is_file():
             raise ValueError("No existe ese experimento con manifiesto; no se retoman parciales antiguos.")
         if json.loads(ruta_manifiesto.read_text(encoding="utf-8")) != manifiesto:
@@ -215,6 +235,8 @@ def preparar_experimento(nombre: str, retomar: bool, manifiesto: dict) -> Path:
         if (directorio / "resultados.json").exists():
             raise ValueError("El experimento ya tiene resultados finales; iniciá otro --experimento.")
     else:
+        # La creación exclusiva evita reutilizar accidentalmente una carpeta de
+        # otra corrida y guarda su manifiesto desde el inicio.
         try:
             directorio.mkdir(parents=True, exist_ok=False)
         except FileExistsError as exc:
@@ -229,6 +251,8 @@ def cargar_parciales(ruta: Path) -> list[dict]:
     if not ruta.exists():
         return []
     try:
+        # Cada línea es un caso ya medido; se validan contra el golden dataset
+        # antes de confiar en ellos o saltarlos durante --resume.
         filas = [json.loads(linea) for linea in ruta.read_text(encoding="utf-8").splitlines() if linea.strip()]
         casos = {caso["id"]: caso for caso in GOLDEN_DATASET}
         vistos = set()
@@ -239,6 +263,8 @@ def cargar_parciales(ruta: Path) -> list[dict]:
             )):
                 raise ValueError("IDs repetidos o casos distintos del dataset.")
             abstencion = clasificar_abstencion(fila["respuesta"])
+            # Evita reanudar con clasificaciones o puntuaciones alteradas,
+            # fuera de rango o pertenecientes a otro caso.
             if any(fila[clave] != valor for clave, valor in abstencion.items()) or (
                 fila["abstencion_ok"] != (
                     abstencion["se_abstuvo"] == es_escape(caso)
@@ -261,6 +287,8 @@ def cargar_parciales(ruta: Path) -> list[dict]:
 
 def promedio(valores: list[float]) -> tuple[float | None, int]:
     """Promedio ignorando NaN; devuelve también cuántos casos entraron."""
+    # None/NaN representan métricas no calculadas (por ejemplo, casos de escape).
+    # Se informa n para que el promedio no oculte cuántos casos lo componen.
     validos = [v for v in valores if v is not None and not math.isnan(v)]
     return (sum(validos) / len(validos) if validos else None), len(validos)
 
@@ -271,6 +299,8 @@ def con_reintentos(fn, intentos: int = 4):
         try:
             return fn()
         except Exception as exc:
+            # La cuota diaria no se resolverá esperando unos segundos; se pide
+            # detenerse y retomar al día siguiente, en vez de reintentar en bucle.
             if "PerDay" in str(exc):
                 raise rag_a.ErrorRAG("Cuota diaria de Gemini agotada; retomá mañana con --resume.") from exc
             reintentable = any(c in str(exc) for c in ("429", "RESOURCE_EXHAUSTED", "503"))
@@ -291,6 +321,8 @@ def crear_juez():
         AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness,
     )
 
+    # RAGAS usa un cliente compatible con OpenAI para invocar Gemini; se reutiliza
+    # la misma clave/modelo del proyecto y embeddings Gemini para relevancia.
     app = rag_a.importar_dependencia("entrega_1.parte_c.app")
     clave, modelo = app.cargar_config()
     llm = llm_factory(modelo, client=AsyncOpenAI(api_key=clave, base_url=URL_GEMINI_OPENAI))
@@ -305,6 +337,8 @@ def crear_juez():
 
 def medir(juez: dict, caso: dict, respuesta: str, contextos: list[str]) -> dict[str, float]:
     q, ref = caso["pregunta"], caso["respuesta_esperada"]
+    # Cada métrica responde una pregunta distinta: soporte factual, relevancia
+    # de respuesta, precisión de las fuentes y cobertura de la referencia.
     llamadas = {
         "faithfulness": lambda: juez["faithfulness"].score(
             user_input=q, response=respuesta, retrieved_contexts=contextos),
@@ -325,6 +359,8 @@ def medir(juez: dict, caso: dict, respuesta: str, contextos: list[str]) -> dict[
 
 
 def crear_pipeline(nombre: str):
+    # Ambos sistemas reciben las mismas preguntas: el modo avanzado se importa
+    # solo cuando se solicita para mantener la CLI básica independiente.
     if nombre == "basico":
         return rag_a.crear_pipeline(K_BASICO)
     from entrega_3.parte_b import rag_avanzado
@@ -343,6 +379,8 @@ def evaluar_pipeline(nombre: str, juez: dict, retomar: bool, directorio: Path) -
     hechos = {f["id"] for f in filas}
     if hechos == {caso["id"] for caso in GOLDEN_DATASET}:
         return filas
+    # Se construye el pipeline una sola vez y se invoca para cada caso aún no
+    # medido; las filas previas se conservan al reanudar.
     cadena = crear_pipeline(nombre)
     for caso in GOLDEN_DATASET:
         if caso["id"] in hechos:
@@ -367,6 +405,8 @@ def evaluar_pipeline(nombre: str, juez: dict, retomar: bool, directorio: Path) -
             **{m: (None if math.isnan(v) else v) for m, v in puntajes.items()},
         }
         filas.append(fila)
+        # Se guarda cada caso inmediatamente: una interrupción no obliga a
+        # repetir consultas ni puntuaciones que ya terminaron.
         # Un JSONL válido puede terminar sin salto de línea tras una interrupción.
         # Al retomar, el parcial de este pipeline puede no existir todavía.
         necesita_salto = (ruta.exists() and ruta.stat().st_size > 0
@@ -381,6 +421,8 @@ def evaluar_pipeline(nombre: str, juez: dict, retomar: bool, directorio: Path) -
 
 
 def resumir(filas: list[dict]) -> dict:
+    # Resume métricas con su n efectivo y cuenta por separado las abstenciones
+    # correctas, que no entran en los promedios RAGAS.
     resumen = {}
     for m in METRICAS:
         valor, n = promedio([f[m] for f in filas])
@@ -391,6 +433,7 @@ def resumir(filas: list[dict]) -> dict:
 
 
 def tabla_comparativa(resumenes: dict) -> str:
+    # El delta es avanzado menos básico; solo tiene sentido cuando están ambos.
     if set(resumenes) != {"basico", "avanzado"}:
         return ""
     fmt = lambda v: "n/d" if v is None else f"{v:.3f}"
@@ -410,11 +453,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--experimento", help="Identificador de la corrida; obligatorio para --resume.")
     opciones = parser.parse_args(argv)
     try:
+        # La validación offline permite revisar estructura y distribución del
+        # dataset sin credenciales, base vectorial ni llamadas a modelos.
         validar_dataset(GOLDEN_DATASET)
         if opciones.solo_dataset:
             print(json.dumps(GOLDEN_DATASET, ensure_ascii=False, indent=2))
             print(f"\nDataset válido: {len(GOLDEN_DATASET)} preguntas {DISTRIBUCION}.")
             return 0
+        # El experimento agrupa una o ambas variantes y recibe un ID explícito
+        # o uno generado para aislar sus parciales y resultados.
         nombres = ["basico", "avanzado"] if opciones.pipeline == "ambos" else [opciones.pipeline]
         if opciones.resume and not opciones.experimento:
             raise ValueError("--resume requiere --experimento para identificar la corrida.")
@@ -427,6 +474,7 @@ def main(argv: list[str] | None = None) -> int:
             for pipeline in nombres:
                 cargar_parciales(directorio / f"parcial_{pipeline}.jsonl")
         print(f"Experimento: {nombre}")
+        # El mismo juez puntúa las respuestas de los pipelines seleccionados.
         juez = crear_juez()
         resultados = {n: evaluar_pipeline(n, juez, opciones.resume, directorio) for n in nombres}
         resumenes = {n: resumir(f) for n, f in resultados.items()}

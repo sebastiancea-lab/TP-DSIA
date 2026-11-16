@@ -11,6 +11,8 @@ from embeddings_gemini import crear_cliente, obtener_embeddings
 # ============================================================
 
 DIRECTORIO_ENTREGA = Path(__file__).resolve().parent
+# La base original conserva los datos de entrada (incluidos los casos de prueba);
+# los indices FAISS y ChromaDB se alimentan luego de la salida limpia.
 RUTA_BASE = DIRECTORIO_ENTREGA / "base_conocimiento.json"
 RUTA_SALIDA = DIRECTORIO_ENTREGA / "base_conocimiento_limpia.json"
 
@@ -42,12 +44,15 @@ CLAVES_VALIDAS = {
 
 def cargar_documentos():
     """Carga la base de conocimiento original."""
+    # La ruta se calcula desde este archivo, no desde el directorio desde donde
+    # se invoca el comando.
     with open(RUTA_BASE, "r", encoding="utf-8") as archivo:
         return json.load(archivo)
 
 
 def guardar_documentos(documentos):
     """Guarda el resultado limpio del proceso ETL."""
+    # Se conserva el texto Unicode y se indenta el JSON para facilitar su lectura.
     with open(RUTA_SALIDA, "w", encoding="utf-8") as archivo:
         json.dump(
             documentos,
@@ -68,6 +73,8 @@ def normalizar_texto(texto):
     - pasa a minúsculas
     - elimina tildes
     """
+    # NFD separa las letras de sus marcas diacriticas; se eliminan estas ultimas
+    # para que, por ejemplo, "categoría" y "categoria" se comparen igual.
     texto = texto.strip().lower()
 
     return "".join(
@@ -90,6 +97,8 @@ def normalizar_claves(metadata, id_documento, cambios):
         clave_normalizada = normalizar_texto(clave)
 
         if clave_normalizada in CLAVES_VALIDAS:
+            # Solo se corrigen las claves conocidas por el esquema; las demas
+            # se conservan para no descartar informacion ajena a esta limpieza.
             metadata_limpia[clave_normalizada] = valor
 
             if clave != clave_normalizada:
@@ -114,6 +123,8 @@ def normalizar_booleano(valor):
     if isinstance(valor, str):
         valor_normalizado = normalizar_texto(valor)
 
+        # Acepta representaciones comunes en los datos de entrada, pero deja
+        # intactos los valores que no reconoce para que no se conviertan a ciegas.
         if valor_normalizado in {"true", "1", "si"}:
             return True
 
@@ -128,7 +139,7 @@ def normalizar_documento(doc, cambios):
     metadata = doc.get("metadatos", {})
     id_documento = doc.get("id", "SIN-ID")
 
-    # Normalización de claves.
+    # Corrige nombres de claves y el tipo de activo antes de indexar metadata.
     metadata = normalizar_claves(
         metadata,
         id_documento,
@@ -167,6 +178,8 @@ def resolver_colisiones_ids(documentos, cambios):
     """
     ids_usados = set()
 
+    # Los IDs duplicados romperian las operaciones por documento en los indices.
+    # Se conserva el primero y se agrega un sufijo incremental a cada repeticion.
     for doc in documentos:
         id_original = doc["id"]
         id_nuevo = id_original
@@ -195,6 +208,8 @@ def resolver_colisiones_ids(documentos, cambios):
 
 def generar_embeddings(documentos):
     """Genera un embedding por documento con el mismo modelo que usa A.4 y B.1."""
+    # Se vectoriza el texto semantico, no los metadatos: estos se usan para
+    # filtrado estructurado en ChromaDB.
     textos = [
         doc["descripcion_semantica"]
         for doc in documentos
@@ -210,6 +225,8 @@ def calcular_distancia_coseno(vector_a, vector_b):
 
     Distancia = 1 - similitud
     """
+    # La similitud alta equivale a distancia baja; esa distancia se compara con
+    # UMBRAL_DISTANCIA para decidir que pares son casi-duplicados.
     similitud = similitud_coseno(vector_a, vector_b)
 
     return 1 - similitud
@@ -222,6 +239,8 @@ def encontrar_pares_similares(documentos, embeddings):
     """
     pares = []
 
+    # Solo se recorren pares i < j: asi se compara cada combinacion una vez y
+    # no se compara un documento consigo mismo.
     for i in range(len(documentos)):
         for j in range(i + 1, len(documentos)):
             distancia = calcular_distancia_coseno(
@@ -237,6 +256,8 @@ def encontrar_pares_similares(documentos, embeddings):
                 "distancia": distancia
             })
 
+    # Los pares mas cercanos quedan primero para facilitar el diagnostico y
+    # procesar primero los duplicados mas evidentes.
     pares.sort(key=lambda par: par["distancia"])
 
     return pares
@@ -255,6 +276,8 @@ def buscar_distancia(par_id_a, par_id_b, pares):
 
 def mostrar_diagnostico_distancias(pares):
     """Muestra los pares más cercanos y las distancias de control."""
+    # Ademas de los vecinos mas cercanos, se muestran los duplicados conocidos
+    # para verificar que el umbral separa los casos de control.
     print(
         f"\nTop {TOP_PARES_DIAGNOSTICO} pares con menor distancia coseno:"
     )
@@ -281,6 +304,8 @@ def mostrar_diagnostico_distancias(pares):
 
 def es_producto_catalogo(id_documento):
     """Indica si un documento corresponde al catálogo de productos."""
+    # Productos parecidos pueden ser variantes legitimas (por ejemplo, modelos
+    # distintos), por eso no se purgan con la regla semantica general.
     return id_documento.startswith("PROD-")
 
 
@@ -299,10 +324,13 @@ def purgar_duplicados_semanticos(documentos, pares, umbral):
     indices_a_eliminar = set()
     eliminados = []
 
+    # None permite desactivar la purga sin cambiar el resto del pipeline.
     if umbral is None:
         return documentos, eliminados
 
     for par in pares:
+        # Se excluye todo par que contenga un producto para no confundir
+        # similitud entre variantes del catalogo con duplicacion.
         if (
             es_producto_catalogo(par["id_a"])
             or es_producto_catalogo(par["id_b"])
@@ -310,6 +338,8 @@ def purgar_duplicados_semanticos(documentos, pares, umbral):
             continue
 
         if par["distancia"] < umbral:
+            # Como los pares se crean con indices crecientes, se conserva el
+            # primero del dataset y se marca para eliminar el documento posterior.
             indice_duplicado = par["indice_b"]
 
             if indice_duplicado not in indices_a_eliminar:
@@ -321,6 +351,7 @@ def purgar_duplicados_semanticos(documentos, pares, umbral):
                     "distancia": par["distancia"]
                 })
 
+    # Filtramos por posicion original para conservar el orden del dataset.
     documentos_limpios = [
         doc
         for indice, doc in enumerate(documentos)
@@ -335,6 +366,8 @@ def purgar_duplicados_semanticos(documentos, pares, umbral):
 # ============================================================
 
 def main():
+    # El ETL corrige primero la estructura y los IDs; despues genera embeddings
+    # para comparar semantica y produce la base que consumen A.4 y B.1.
     # 1. Cargar dataset original.
     documentos = cargar_documentos()
     cambios = []
@@ -351,6 +384,8 @@ def main():
         cambios
     )
 
+    # Cada documento recibe un vector; luego se comparan todos los pares,
+    # por lo que esta etapa requiere acceso a la API de embeddings.
     # 4. Generar embeddings.
     embeddings = generar_embeddings(documentos_normalizados)
 
@@ -360,14 +395,14 @@ def main():
         embeddings
     )
 
-    # 6. Realizar la purga semántica.
+    # 6. Elimina los casi-duplicados no-producto bajo el umbral calibrado.
     documentos_limpios, eliminados = purgar_duplicados_semanticos(
         documentos_normalizados,
         pares_similares,
         UMBRAL_DISTANCIA
     )
 
-    # 7. Guardar la base limpia.
+    # 7. La salida limpia es la fuente de los indices de FAISS y ChromaDB.
     guardar_documentos(documentos_limpios)
 
     # ========================================================
@@ -376,6 +411,8 @@ def main():
 
     print("\n=== REPORTE ETL ===")
 
+    # Este resumen permite verificar cuantas entradas se conservaron y que
+    # transformaciones estructurales o semanticas se aplicaron.
     print(f"\nDocumentos cargados: {len(documentos)}")
     print(f"Documentos normalizados: {len(documentos_normalizados)}")
     print(f"Embeddings generados: {len(embeddings)}")
