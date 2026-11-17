@@ -136,6 +136,10 @@ de presentar. Los tokens salen de `usage_metadata` (suma de todas las llamadas a
 | 4b Fuera de dominio | 1 | 1.358 | 14 | 0,00036 |
 | **Promedio** | | | | **≈ 0,0010** |
 
+Al repetir la matriz el 16/11/2026 con el tracing activo, los tokens de entrada fueron prácticamente
+los mismos y los de salida variaron poco (66, 64, 168, 75 y 14): el promedio sigue en ≈ US$ 0,001
+por consulta.
+
 - **Costo por consulta:** alrededor de **US$ 0,001**. Proyección: 1.000 consultas por día ≈ US$ 1
   por día ≈ US$ 30 por mes; 10.000 por día ≈ US$ 300 por mes (suponiendo la misma mezcla).
 - **Qué consume más:** el escenario 3 (cambio), por tener 4 llamadas al LLM con contexto creciente.
@@ -155,8 +159,21 @@ de presentar. Los tokens salen de `usage_metadata` (suma de todas las llamadas a
 - **`GET /metricas`:** consultas totales, errores, latencia promedio y p95, uso por herramienta,
   bloqueos por tipo (`input_injection`, `input_longitud`, `output_pii`) y tokens de entrada y salida.
 - **LangSmith:** cada invoke lleva `metadata={"thread_id": ...}` y `tags=["entrega4"]`; proyecto
-  `tp-portalia`. **Pendiente del equipo:** capturar las trazas (matriz y una sesión de demo) y
-  guardarlas como `entrega_4/langsmith_*.png`; requiere la cuenta de LangSmith.
+  `tp-portalia`. Capturas de las trazas (corridas del 16/11/2026):
+
+  Los 5 casos de la matriz de validación, con su latencia (de 1,57 s a 16,54 s):
+
+  ![Runs de la matriz de validación en LangSmith](langsmith_matriz.png)
+
+  Traza del escenario 3 (cambio elegible): el grafo alterna `agente` y `tools` y llama a
+  `consultar_pedido`, `consultar_stock` y `solicitar_cambio_o_devolucion`. LangSmith informa
+  6.951 tokens y US$ 0,002 para el turno, lo mismo que da el cálculo de la sección 4:
+
+  ![Traza del cambio elegible en LangSmith](langsmith_traza_cambio.png)
+
+  Sesión de demo por HTTP, cuatro consultas con el mismo `thread_id`:
+
+  ![Runs de la sesión de demo en LangSmith](langsmith_sesion_demo.png)
 
 ## 6. Limitaciones
 
