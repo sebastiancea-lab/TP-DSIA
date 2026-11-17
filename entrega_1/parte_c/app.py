@@ -19,6 +19,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Procura mostrar bien caracteres como tildes en terminales que permiten
+# reconfigurar su salida; si no es posible, el programa sigue funcionando.
 for _flujo in (sys.stdout, sys.stderr):
     try:
         _flujo.reconfigure(encoding="utf-8")
@@ -31,6 +33,8 @@ from google import genai
 from google.genai import errors as genai_errors, types
 from pydantic import ValidationError
 
+# Permite ejecutar el archivo como modulo desde la raiz o directamente desde
+# parte_c, manteniendo el mismo contrato definido en schemas.py (C.1).
 try:
     from .schemas import (
         SYSTEM_PROMPT,
@@ -49,7 +53,8 @@ except (ImportError, ValueError):
 RAIZ = Path(__file__).resolve().parents[2]
 MODELO_POR_DEFECTO = "gemini-3.6-flash"
 
-# Caso guia del dominio (mismo pedido que la evidencia de A.2).
+# Caso guia de A.2: permite probar el pipeline sin escribir un mensaje en la
+# terminal. Los metadatos de entrada siguen el contrato B.5a.
 CONSULTA_DEMO = ConsultaPostventa(
     canal="whatsapp",
     texto_libre=(
@@ -60,11 +65,15 @@ CONSULTA_DEMO = ConsultaPostventa(
     timestamp=datetime(2026, 9, 5, 20, 30, 0),
 )
 
-
+# Excepción propia para identificar errores de configuración, como la falta de LLM_API_KEY.
 class ErrorDeConfig(RuntimeError):
     """Falta una variable de entorno obligatoria."""
+    
 def cargar_config() -> tuple[str, str]:
     """Devuelve ``(api_key, modelo)`` leyendo ``<raiz>/.env``."""
+    # La clave se lee localmente desde la raiz del proyecto y no se incluye
+    # en el codigo. El modelo puede configurarse; si falta, se usa el valor
+    # predeterminado.
     load_dotenv(RAIZ / ".env")
     api_key = os.environ.get("LLM_API_KEY", "").strip()
     if not api_key:
@@ -75,19 +84,28 @@ def cargar_config() -> tuple[str, str]:
     modelo = os.environ.get("LLM_MODEL", "").strip() or MODELO_POR_DEFECTO
     return api_key, modelo
 
-
+# Crea el cliente oficial de Gemini con la credencial configurada.
 def construir_cliente(api_key: str) -> genai.Client:
     return genai.Client(api_key=api_key)
 
 
 def pedir_a_gemini(cliente: genai.Client, modelo: str, consulta: ConsultaPostventa) -> str:
+    # C.2: el LLM interpreta el mensaje, pero el prompt le indica que solo
+    # extraiga datos y no invente estados ni ejecute acciones. 
+    # Structured Outputs solicita JSON con el esquema derivado del contrato Pydantic,
+    # la validacion de la salida se vuelve a hacer localmente mas abajo.
     respuesta = cliente.models.generate_content(
         model=modelo,
         contents=consulta.texto_libre,
+        
         config=types.GenerateContentConfig(
+             # Instrucciones fijas: el rol del agente y las 7 reglas (SYSTEM_PROMPT).
             system_instruction=SYSTEM_PROMPT,
+            # Sin aleatoriedad: ante el mismo mensaje, el modelo elige siempre el token más probable.
             temperature=0,
+             # Structured Outputs: le pedimos que la respuesta sea JSON ..
             response_mime_type="application/json",
+            # ..y que respete este esquema. El proveedor bloquea los tokens que lo romperían.
             response_schema=esquema_respuesta_gemini(),
         ),
     )
@@ -102,6 +120,8 @@ def procesar(cliente: genai.Client, modelo: str, consulta: ConsultaPostventa) ->
     print(f"Canal      : {consulta.canal}")
     print(f"Texto      : {consulta.texto_libre}")
 
+    # Separamos errores de API y de conectividad para informar por que no se
+    # obtuvo una extraccion; ninguno se considera una salida valida.
     try:
         json_crudo = pedir_a_gemini(cliente, modelo, consulta)
     except genai_errors.APIError as exc:
@@ -115,12 +135,16 @@ def procesar(cliente: genai.Client, modelo: str, consulta: ConsultaPostventa) ->
         print(f"[red] Fallo de conexion con la API: {type(exc).__name__}: {exc}", file=sys.stderr)
         return False
 
+    # Mostramos la respuesta original para poder comparar la salida del modelo
+    # con el contrato y reproducir los casos del lote de C.3.
     print("JSON crudo del modelo:")
     try:
         print(json.dumps(json.loads(json_crudo), indent=2, ensure_ascii=False))
     except ValueError:
         print(json_crudo)
 
+    # Tener una respuesta estructurada no reemplaza validar sus valores:
+    # Pydantic aplica tipos, campos permitidos y reglas de negocio del contrato.
     try:
         extraccion = ExtraccionPostventa.model_validate_json(json_crudo)
     except ValidationError as exc:
@@ -134,6 +158,8 @@ def procesar(cliente: genai.Client, modelo: str, consulta: ConsultaPostventa) ->
         return False
 
     print("Campos extraidos y validados:")
+    # Solo se informa la interpretacion validada. Esta entrega no consulta la
+    # base de pedidos ni cambia datos: el flujo termina antes del backend (C.5).
     for campo, valor in extraccion.model_dump().items():
         print(f"  {campo:<20}: {valor!r}")
     return True
@@ -145,6 +171,8 @@ def parsear_argumentos(argv: list[str]) -> list[ConsultaPostventa]:
     canal = "whatsapp"
     textos: list[str] = []
     i = 0
+    # Se procesa la lista manualmente para aceptar varios mensajes en una
+    # corrida y aplicar el canal indicado a todos ellos.
     while i < len(argv):
         if argv[i] == "--canal":
             if i + 1 >= len(argv):
@@ -158,6 +186,8 @@ def parsear_argumentos(argv: list[str]) -> list[ConsultaPostventa]:
     if not textos:
         return [CONSULTA_DEMO]
 
+    # Cada texto se convierte en un request B.5a. La validacion del contrato
+    # rechaza, por ejemplo, un canal no admitido o un mensaje vacio.
     consultas: list[ConsultaPostventa] = []
     for texto in textos:
         consultas.append(
@@ -172,6 +202,8 @@ def parsear_argumentos(argv: list[str]) -> list[ConsultaPostventa]:
 
 
 def main(argv: list[str]) -> int:
+    # Primero se valida la configuracion y se construyen los requests. Los
+    # errores de entrada o de credenciales terminan la ejecucion con codigo 2.
     try:
         api_key, modelo = cargar_config()
         consultas = parsear_argumentos(argv[1:])
@@ -188,6 +220,8 @@ def main(argv: list[str]) -> int:
     cliente = construir_cliente(api_key)
     print(f"Modelo: {modelo}\n")
 
+    # Se procesa cada consulta por separado y se informa cuantas salidas
+    # cumplieron el contrato, como en la prueba de lote C.3.
     validaron = 0
     for numero, consulta in enumerate(consultas, start=1):
         print(f"===== Input {numero}/{len(consultas)} =====")
@@ -200,4 +234,5 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    # Permite ejecutar este archivo directamente desde la linea de comandos.
     raise SystemExit(main(sys.argv))

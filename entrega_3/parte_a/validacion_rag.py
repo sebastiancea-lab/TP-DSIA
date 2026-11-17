@@ -16,7 +16,11 @@ else:
 def crear_casos() -> list[dict]:
     """Lee el corpus solo como referencia de evaluación; nunca lo indexa."""
     ruta = rag.RAIZ / "entrega_2" / "base_conocimiento_limpia.json"
+    # Se usa el corpus limpio para comprobar que las fuentes esperadas existen
+    # y para guardar su texto de referencia, sin modificar la base persistida.
     corpus = {doc["id"]: doc for doc in json.loads(ruta.read_text(encoding="utf-8"))}
+    # Los cuatro escenarios cubren respuesta factual, abstencion fuera de dominio,
+    # resistencia a una premisa falsa y recuperacion ante lenguaje informal.
     definiciones = [
         (
             "factual", "Factual directa",
@@ -62,6 +66,8 @@ def crear_casos() -> list[dict]:
 
 def extraer_fuentes(resultado: dict) -> list[dict]:
     """Comprueba que los documentos mostrados son los serializados en el contexto."""
+    # El resultado incluye las fuentes recuperadas y el contexto que vio el LLM;
+    # compararlos evita atribuirle una respuesta a documentos distintos.
     fuentes = json.loads(rag.formatear_documentos(resultado["documentos"]))
     if fuentes != json.loads(resultado["contexto"]):
         raise rag.ErrorRAG("Las fuentes no coinciden con el contexto entregado al LLM.")
@@ -70,6 +76,8 @@ def extraer_fuentes(resultado: dict) -> list[dict]:
 
 def evaluar_caso(caso: dict, resultado: dict, revision: bool | None = None) -> dict:
     """Chequeos necesarios + revisión humana de fidelidad, sin juez LLM ni heurísticas."""
+    # Centraliza el formato de cada evaluacion para que aprobados, fallidos y
+    # pendientes puedan reportarse de la misma manera.
     def informe(estado, detalle, fuentes, revisar=False):
         return {
             "estado": estado, "detalle": detalle, "documentos": fuentes,
@@ -81,9 +89,13 @@ def evaluar_caso(caso: dict, resultado: dict, revision: bool | None = None) -> d
     except (rag.ErrorRAG, KeyError, TypeError, ValueError):
         return informe("fallido", "Fuentes ausentes o distintas del contexto del LLM.", [])
     respuesta = resultado.get("respuesta")
+    # Primero se validan los requisitos observables: trazabilidad y respuesta
+    # textual. No tiene sentido revisar semantica si falta alguno.
     if not isinstance(respuesta, str) or not respuesta.strip():
         return informe("fallido", "No se obtuvo una respuesta textual no vacía.", fuentes)
     if caso["caso"] == "fuera_dominio":
+        # Para evitar respuestas inventadas, el caso fuera de dominio solo pasa
+        # cuando se usa exactamente la frase de abstencion acordada.
         correcto = respuesta == rag.FRASE_ESCAPE
         return informe(
             "aprobado" if correcto else "fallido",
@@ -110,6 +122,8 @@ def evaluar_caso(caso: dict, resultado: dict, revision: bool | None = None) -> d
 
 def ejecutar_caso(chain, caso: dict, revisar: bool = False) -> dict:
     """Una sola invocación por caso; las fuentes y la revisión reutilizan su resultado."""
+    # Se consulta una sola vez; la evaluacion y la revision humana trabajan con
+    # la misma respuesta y las mismas fuentes.
     try:
         resultado = chain.invoke(caso["pregunta"])
     except Exception as exc:
@@ -120,6 +134,8 @@ def ejecutar_caso(chain, caso: dict, revisar: bool = False) -> dict:
         }
     evaluacion = evaluar_caso(caso, resultado)
     if revisar and evaluacion["revision_necesaria"]:
+        # Solo los casos que requieren juicio semantico se presentan al revisor,
+        # quien compara la respuesta con lo esperado y las fuentes recuperadas.
         print(json.dumps({**caso, "respuesta": resultado["respuesta"], **evaluacion}, ensure_ascii=False, indent=2))
         print("Compará la respuesta con el esperado y todos los documentos. "
               "Si la política persistida cambió respecto del corpus, dejá pendiente.")
@@ -134,6 +150,8 @@ def ejecutar_caso(chain, caso: dict, revisar: bool = False) -> dict:
 
 def crear_trazas(matriz: list[dict]) -> list[dict]:
     """A.4 reutiliza las consultas factual y de sinónimos, sin ejecutar otra búsqueda."""
+    # La trazabilidad se deriva de las filas ya ejecutadas: no se vuelve a
+    # consultar Chroma, lo que evita que fuentes distintas se asocien a la respuesta.
     return [
         {
             "pregunta": fila["pregunta"], "respuesta": fila["respuesta"],
@@ -151,6 +169,8 @@ def crear_trazas(matriz: list[dict]) -> list[dict]:
 
 def recursos_faltantes() -> list[str]:
     """Preflight de solo lectura; informa nombres, nunca valores de configuración."""
+    # Comprueba persistencia y variables antes de crear el pipeline, para evitar
+    # consultas parciales o intentos de ingesta cuando falta un requisito.
     dotenv = rag.importar_dependencia("dotenv")
     dotenv.load_dotenv(rag.RAIZ / ".env")
     faltantes = []
@@ -167,6 +187,8 @@ def main() -> int:
     parser.add_argument("--revisar", action="store_true", help="Revisar en terminal las respuestas reales de negocio.")
     args = parser.parse_args()
     casos = crear_casos()
+    # Primero se verifica que haya base y configuracion. Si falta algo, los casos
+    # quedan pendientes y no se llama ni al retriever ni al modelo.
     try:
         faltantes = recursos_faltantes()
         if faltantes:
@@ -184,9 +206,14 @@ def main() -> int:
             for caso in casos
         ]
     else:
+        # El mismo chain procesa todos los escenarios; --revisar habilita la
+        # evaluacion humana para las respuestas que no se pueden juzgar por forma.
         matriz = [ejecutar_caso(chain, caso, revisar=args.revisar) for caso in casos]
+    # Se emiten juntos los resultados A.3 y las trazas A.4 en JSON para poder
+    # inspeccionarlos o guardarlos como evidencia.
     print(json.dumps({"a3_matriz": matriz, "a4_trazas": crear_trazas(matriz)}, ensure_ascii=False, indent=2))
     estados = [fila["estado"] for fila in matriz]
+    # 0: todos aprobados; 1: hubo un fallo; 2: queda al menos un caso pendiente.
     return 1 if "fallido" in estados else 2 if "pendiente" in estados else 0
 
 

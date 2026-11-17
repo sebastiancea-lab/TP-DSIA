@@ -1,0 +1,29 @@
+# Uso (desde la raíz del repo): docker compose -f entrega_4/docker-compose.yaml up --build -d
+# Requiere .env (con LLM_API_KEY) y la base Chroma ya cargada en ./entrega_2/chroma_db
+# (uv run python entrega_2/etl_purga.py && uv run python entrega_2/vector_db.py --cargar).
+# El contexto de build es la raíz del repo: la imagen copia entrega_1..4, pyproject y uv.lock.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: entrega_4/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: ../.env
+    environment:
+      # Pisa el DB_PATH del .env: adentro del contenedor la memoria va al volumen.
+      DB_PATH: /app/state/memoria.sqlite3
+    volumes:
+      - memoria:/app/state
+      - ../entrega_2/chroma_db:/app/entrega_2/chroma_db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  # "docker compose -f entrega_4/docker-compose.yaml down -v" borra la memoria persistente.
+  memoria:

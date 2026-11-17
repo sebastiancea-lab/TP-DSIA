@@ -11,7 +11,8 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-# Cargar variables de entorno desde la raíz
+# La clave y el modelo se comparten con el resto del proyecto; se busca el .env
+# desde la raiz para que el script funcione aunque se ejecute desde otro directorio.
 RAIZ = Path(__file__).resolve().parents[2]
 load_dotenv(RAIZ / ".env")
 
@@ -25,10 +26,16 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 NOMBRE_COLECCION_AVANZADA = "portalia_knowledge_avanzada"
+# La Parte B mantiene su propia persistencia para experimentar con chunks sin
+# reemplazar la coleccion original usada por el RAG basico.
 DIRECTORIO_CHROMA_AVANZADA = RAIZ / "entrega_3" / "parte_b" / "chroma_db"
+# Se recupera una ventana amplia para no perder una politica relevante entre
+# resultados secundarios; el juez luego reduce el contexto que recibe el generador.
 K_CANDIDATOS = 8
 K_SELECCIONADOS = 3
 
+# Prompt de la etapa intermedia: el juez ordena por utilidad para esta pregunta,
+# sin redactar todavia la respuesta destinada al cliente.
 PROMPT_RERANKER = """Sos un evaluador experto de relevancia documental para Portalia.
 Tu tarea es analizar la siguiente pregunta de un cliente y evaluar una lista de fragmentos documentales candidatos.
 
@@ -48,7 +55,8 @@ Ejemplo de formato de respuesta: ["ID-1", "ID-2"]
 No agregues texto explicativo, comentarios ni formato markdown adicional fuera del JSON.
 """
 
-# Prompt propio del generador: conserva los guardrails de Parte A sin cambiarla.
+# El generador conserva los guardrails de Parte A y agrega instrucciones para
+# responder consultas parciales y razonar con fechas de recepcion sin inventarlas.
 REGLAS_GENERADOR_AVANZADO = """Sos el asistente de Portalia, un e-commerce de productos electrónicos.
 Respondé en español, de forma clara y breve, sobre su catálogo y atención postventa.
 Usá únicamente información presente de manera explícita en los documentos recuperados.
@@ -84,6 +92,8 @@ la siguiente frase, sin explicaciones, puntuación ni contenido adicional:
 
 
 def obtener_cliente_chroma(*, crear: bool = False):
+    # La lectura normal debe fallar si la base no existe: abrir una consulta no
+    # debe crear ni reconstruir por accidente la persistencia avanzada.
     if not crear and not (DIRECTORIO_CHROMA_AVANZADA / "chroma.sqlite3").is_file():
         raise rag_a.ErrorRAG(
             f"No existe la base avanzada en {DIRECTORIO_CHROMA_AVANZADA}. "
@@ -99,10 +109,15 @@ def indexar_con_chunking(chunk_size: int = 300, chunk_overlap: int = 80) -> int:
     """Reindexa el corpus limpio aplicando RecursiveCharacterTextSplitter con solapamiento."""
     from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+    # Se parte del corpus ya limpiado en Entrega 2 y se conservan sus metadatos,
+    # en lugar de fragmentar la base cruda con inconsistencias y duplicados.
     anterior = rag_a.cargar_entrega2()
     ruta_corpus = RAIZ / "entrega_2" / "base_conocimiento_limpia.json"
     documentos_crudos = json.loads(ruta_corpus.read_text(encoding="utf-8"))
 
+    # El splitter intenta cortar primero en limites de frases y parrafos, y usa
+    # separadores menores solo si hace falta para respetar el tamaño del chunk.
+    # El solapamiento conserva contexto que podria quedar partido entre fragmentos.
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
@@ -116,6 +131,8 @@ def indexar_con_chunking(chunk_size: int = 300, chunk_overlap: int = 80) -> int:
         metadatos_base = rag_a.cargar_entrega2().aplanar_metadatos(doc["metadatos"])
         metadatos_base["doc_origen_id"] = doc_id
 
+        # Cada fragmento conserva el ID de origen y su posicion para poder
+        # rastrearlo y distinguirlo de los demas chunks del mismo documento.
         pedazos = splitter.split_text(texto)
         for i, pedazo in enumerate(pedazos):
             chunk_doc = Document(
@@ -125,9 +142,11 @@ def indexar_con_chunking(chunk_size: int = 300, chunk_overlap: int = 80) -> int:
             )
             chunks_totales.append(chunk_doc)
 
+    # La reconstruccion ocurre unicamente por esta ruta explicita de reindexado.
     cliente_chroma = obtener_cliente_chroma(crear=True)
 
-    # Si ya existe la colección avanzada, la reseteamos para garantizar frescura
+    # Se reemplaza la coleccion anterior para no mezclar fragmentos viejos con
+    # el nuevo chunking; si aun no existe, se sigue con su creacion.
     try:
         cliente_chroma.delete_collection(name=NOMBRE_COLECCION_AVANZADA)
     except Exception:
@@ -139,6 +158,8 @@ def indexar_con_chunking(chunk_size: int = 300, chunk_overlap: int = 80) -> int:
         embedding_function=anterior.EmbeddingsGeminiChroma(),
     )
 
+    # Chroma genera y persiste un embedding por chunk usando la funcion de la
+    # Entrega 2, que mantiene el mismo modelo y dimension del espacio vectorial.
     coleccion.upsert(
         ids=[c.id for c in chunks_totales],
         documents=[c.page_content for c in chunks_totales],
@@ -153,6 +174,8 @@ def indexar_con_chunking(chunk_size: int = 300, chunk_overlap: int = 80) -> int:
 
 def abrir_coleccion_avanzada():
     """Abre y valida la persistencia existente, sin ingesta ni reconstrucción."""
+    # La consulta abre una coleccion ya indexada; solo --reindexar debe crearla
+    # o reemplazarla. Luego se comprueba que su espacio vectorial sea compatible.
     try:
         cliente = obtener_cliente_chroma()
         coleccion = cliente.get_collection(
@@ -175,18 +198,22 @@ def abrir_coleccion_avanzada():
 
 
 def validar_cantidad(valor: int, nombre: str) -> None:
+    # Evita pasar limites invalidos a Chroma o a la seleccion del reranker.
     if isinstance(valor, bool) or not isinstance(valor, int) or valor <= 0:
         raise rag_a.ErrorRAG(f"{nombre} debe ser un entero positivo.")
 
 
 def crear_retriever_avanzado(k: int = K_CANDIDATOS):
     """Retriever que extrae k candidatos con embeddings compartidos."""
+    # Esta primera etapa prioriza cobertura: obtiene varios candidatos activos;
+    # todavia no los reduce al contexto final del generador.
     validar_cantidad(k, "k_candidatos")
     coleccion = abrir_coleccion_avanzada()
     anterior = rag_a.cargar_entrega2()
     cliente_gemini = anterior.crear_cliente()
 
     def recuperar_candidatos(query: str) -> list[Document]:
+        # La consulta usa el mismo modelo de embeddings con que se indexaron los chunks.
         pregunta = rag_a.validar_pregunta(query)
         vector = anterior.obtener_embeddings(cliente_gemini, [pregunta])
         crudo = coleccion.query(
@@ -195,6 +222,8 @@ def crear_retriever_avanzado(k: int = K_CANDIDATOS):
             where={"activo": {"$eq": True}},
             include=["documents", "metadatas", "distances"],
         )
+        # Se guarda la distancia para inspeccion y trazabilidad; los candidatos
+        # se entregan al juez, que decide cuales aportan realmente a la pregunta.
         documentos = []
         for i, identificador in enumerate(crudo["ids"][0]):
             texto = crudo["documents"][0][i]
@@ -230,6 +259,8 @@ class GeminiChatModel(BaseChatModel):
         run_manager: Any = None,
         **kwargs: Any,
     ) -> ChatResult:
+        # LangChain entrega mensajes separados; el SDK de Gemini recibe el
+        # system prompt como instruccion y el resto como contenido de usuario.
         sys_inst = None
         user_parts = []
         for m in messages:
@@ -244,12 +275,15 @@ class GeminiChatModel(BaseChatModel):
 
         from google.genai import types
 
+        # T=0 reduce variaciones para el juez y el generador en esta prueba.
         resp = self.cliente.models.generate_content(
             model=self.modelo,
             contents=prompt_texto,
             config=types.GenerateContentConfig(**conf),
         )
         texto = (resp.text or "").strip()
+        # La metadata de uso se devuelve en el mensaje y en llm_output para que
+        # LangSmith pueda registrar tokens de entrada y salida.
         usage = {}
         if hasattr(resp, "usage_metadata") and resp.usage_metadata:
             usage = {
@@ -276,6 +310,7 @@ class GeminiChatModel(BaseChatModel):
 
 def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
     """LLM como juez para evaluar y filtrar los candidatos recuperados."""
+    # El juez usa el modelo y credencial configurados para Gemini.
     validar_cantidad(k_max, "k_seleccionados")
     app = rag_a.importar_dependencia("entrega_1.parte_c.app")
     clave, modelo = app.cargar_config()
@@ -287,8 +322,11 @@ def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
         candidatos: list[Document] = entrada["candidatos"]
 
         if not candidatos:
+            # Sin candidatos no hay nada que evaluar ni hace falta llamar al juez.
             return {**entrada, "documentos": [], "ids_candidatos": [], "ids_seleccionados": []}
 
+        # El ID identifica cada opción de forma no ambigua y el origen permite
+        # al juez ubicar el fragmento dentro del documento original.
         formato_candidatos = "\n\n".join(
             f"[{c.id}] (Origen: {c.metadata.get('doc_origen_id', c.id)})\n{c.page_content}"
             for c in candidatos
@@ -300,6 +338,8 @@ def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
             k_max=k_max,
         )
 
+        # El juez devuelve solo IDs; el texto de los fragmentos se recupera del
+        # mapa local, no se acepta contenido documental reescrito por el LLM.
         respuesta_llm = llm_juez.invoke(prompt_str)
         texto_salida = (respuesta_llm.content or "").strip()
         # Limpiar posibles bloques de código ```json
@@ -311,6 +351,7 @@ def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
                 lineas = lineas[:-1]
             texto_salida = "\n".join(lineas).strip()
 
+        # Se valida el JSON antes de usarlo como selección.
         try:
             ids_seleccionados = json.loads(texto_salida)
         except json.JSONDecodeError as exc:
@@ -320,6 +361,8 @@ def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
         ):
             raise rag_a.ErrorRAG("El reranker debe devolver un array JSON de IDs de texto.")
 
+        # Solo se aceptan IDs que pertenecen a los candidatos, sin repeticiones,
+        # y se corta al máximo solicitado para limitar ruido en el contexto final.
         mapa_docs = {c.id: c for c in candidatos}
         docs_filtrados = []
         vistos = set()
@@ -342,6 +385,8 @@ def crear_reranker_llm(k_max: int = K_SELECCIONADOS):
 
 def crear_pipeline_avanzado(k_candidatos: int = K_CANDIDATOS, k_seleccionados: int = K_SELECCIONADOS):
     """Pipeline RAG Avanzado con LCEL: Retriever k=8 -> LLM Reranker -> Generator Prompt -> LLM."""
+    # Separa recuperacion amplia, seleccion semantica y redaccion final para
+    # reducir el ruido que puede desplazar documentos importantes en el RAG basico.
     retriever = crear_retriever_avanzado(k=k_candidatos)
     reranker = crear_reranker_llm(k_max=k_seleccionados)
     
@@ -350,6 +395,8 @@ def crear_pipeline_avanzado(k_candidatos: int = K_CANDIDATOS, k_seleccionados: i
     cliente = app.construir_cliente(clave)
     llm = GeminiChatModel(cliente=cliente, modelo=modelo, temperatura=0.0)
 
+    # El generador recibe solo los fragmentos elegidos por el juez, no los ocho
+    # candidatos iniciales, y debe abstenerse si no queda contexto util.
     prompt_generador = ChatPromptTemplate.from_messages([
         ("system", REGLAS_GENERADOR_AVANZADO),
         (
@@ -360,6 +407,8 @@ def crear_pipeline_avanzado(k_candidatos: int = K_CANDIDATOS, k_seleccionados: i
 
     cadena_generacion = prompt_generador | llm | StrOutputParser()
 
+    # LCEL pasa la pregunta por las etapas conservando IDs, candidatos,
+    # documentos finales, contexto y respuesta para inspeccion posterior.
     chain = (
         RunnablePassthrough()
         | RunnableLambda(lambda p: {"pregunta": rag_a.validar_pregunta(p)})
@@ -385,16 +434,22 @@ def main():
     parser.add_argument("--k-seleccionados", type=int, default=K_SELECCIONADOS, help="Documentos finales post-rerank.")
     opciones = parser.parse_args()
 
+    # Validar y reconstruir son acciones distintas: --reindexar reemplaza la
+    # coleccion avanzada; sin esa opcion, el pipeline solo abre la persistencia.
     if opciones.reindexar:
         indexar_con_chunking()
         if not opciones.consulta:
             return
 
     consulta = opciones.consulta or (
+        # Caso de demostracion que pone a prueba una consulta con varios aspectos
+        # (cambio/devolucion y diferencia de precio).
         "Compré unos auriculares inalámbricos hace 15 días, no me gusta el sonido y "
         "quiero saber si puedo cambiarlos por otro modelo de diferente precio o pedir que me devuelvan la plata"
     )
 
+    # Se exponen ambos tamaños en CLI para comparar cuántos candidatos se
+    # consideran y cuántos pasan al contexto de generacion.
     pipeline = crear_pipeline_avanzado(
         k_candidatos=opciones.k_candidatos,
         k_seleccionados=opciones.k_seleccionados,
